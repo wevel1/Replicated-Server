@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 
-import socket, sys, os, signal, threading
-import szasar, select
+import socket, sys, os, signal
+import szasar
 
-PORT = 6012
-PORT2 = 6013
-PORT3 = 6014
+PORT = 6014
 FILES_PATH = "files"
 MAX_FILE_SIZE = 10 * 1 << 20 # 10 MiB
 SPACE_MARGIN = 50 * 1 << 20  # 50 MiB
@@ -20,13 +18,16 @@ def sendOK( s, params="" ):
 
 def sendER( s, code=1 ):
 	s.sendall( ("ER{}\r\n".format( code )).encode( "ascii" ) )
+def separate_path(filename):
+	a = str(filename)
+	d = a.split("/")
+	return d
 
 def session( s ):
 	state = State.Identification
 
 	while True:
 		message = szasar.recvline( s ).decode( "ascii" )
-#		print( "---SERVER: Leido msg {} {}\r\n.".format( message[0:4], message[4:] ) )
 		if not message:
 			return
 
@@ -48,7 +49,6 @@ def session( s ):
 				continue
 			if( user == 0 or PASSWORDS[user] == message[4:] ):
 				sendOK( s )
-				filespath = os.path.join( FILES_PATH, USERS[user] )
 				state = State.Main
 			else:
 				sendER( s, 3 )
@@ -60,8 +60,8 @@ def session( s ):
 				continue
 			try:
 				message = "OK\r\n"
-				for filename in os.listdir( filespath ):
-					filesize = os.path.getsize( os.path.join( filespath, filename ) )
+				for filename in os.listdir( FILES_PATH ):
+					filesize = os.path.getsize( os.path.join( FILES_PATH, filename ) )
 					message += "{}?{}\r\n".format( filename, filesize )
 				message += "\r\n"
 			except:
@@ -73,7 +73,7 @@ def session( s ):
 			if state != State.Main:
 				sendER( s )
 				continue
-			filename = os.path.join( filespath, message[4:] )
+			filename = os.path.join( FILES_PATH, message[4:] )
 			try:
 				filesize = os.path.getsize( filename )
 			except:
@@ -109,8 +109,9 @@ def session( s ):
 			if filesize > MAX_FILE_SIZE:
 				sendER( s, 8 )
 				continue
-			svfs = os.statvfs( filespath )
+			svfs = os.statvfs( FILES_PATH )
 			if filesize + SPACE_MARGIN > svfs.f_bsize * svfs.f_bavail:
+				print("llega error 4")
 				sendER( s, 9 )
 				continue
 			sendOK( s )
@@ -122,7 +123,16 @@ def session( s ):
 				continue
 			state = State.Main
 			try:
-				with open( os.path.join( filespath, filename), "wb" ) as f:
+				directories = separate_path(filename)
+				for i in range(len(directories)):
+					if i==0:
+						finalpath = ""
+					else:
+						finalpath = os.path.join(finalpath,directories[i])
+						if(os.path.exists(os.path.join( FILES_PATH, finalpath))==False):
+							if(i!=len(directories)-1):
+								os.mkdir(os.path.join( FILES_PATH, finalpath))
+				with open( os.path.join( FILES_PATH, finalpath), "wb" ) as f:
 					filedata = szasar.recvall( s, filesize )
 					f.write( filedata )
 			except:
@@ -138,7 +148,7 @@ def session( s ):
 				sendER( s, 7 )
 				continue
 			try:
-				os.remove( os.path.join( filespath, message[4:] ) )
+				os.remove( os.path.join( FILES_PATH, message[4:] ) )
 			except:
 				sendER( s, 11 )
 			else:
@@ -146,7 +156,6 @@ def session( s ):
 
 		elif message.startswith( szasar.Command.Exit ):
 			sendOK( s )
-			s.close()
 			return
 
 		else:
@@ -156,54 +165,27 @@ def session( s ):
 
 if __name__ == "__main__":
 	s = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
-	s2 = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
-	s3 = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
-	
-	#Connection with the client.
+    
+    #Connection with the main server
 	try:
 		s.bind(('', PORT))
 	except socket.error as msg:
-		print('Bind failed with client. Error Code : ...')
+		print('Bind failed with main server. Error Code : ...')
 		sys.exit()
 	
-	print('Socket bind complete with client')
+	print('Socket bind complete with main server')
 	s.listen( 5 )
-	
-	#Connection with replicated server1
-	try:
-		s2.bind( ('', PORT2) )
-	except socket.error as msg:
-		print('Bind failed replicated server 2. Error Code : ...')
-		sys.exit()
-	
-	print('Socket bind complete with replicated server1')
-	s2.listen( 5 )
-	
-	#Connection with replicated server2
-	try:
-		s3.bind( ('', PORT3) )
-	except socket.error as msg:
-		print('Bind failed replicated server2. Error Code : ...')
-		sys.exit()
-	
-	print('Socket bind complete with replicated server2')
-	s3.listen( 5 )
-	
-	#signal.signal(signal.SIGCHLD, signal.SIG_IGN)
-	socketlist = []
-	socketlist.append(s)
-	socketlist.append(s2)
-	socketlist.append(s3)
 
-	threads = []
-	dialog = []
 
-	while (True):
-		readable,_,_ = select.select(socketlist, [], [])
-		ready_server = readable[0]
-		sc, address = ready_server.accept()
+	signal.signal(signal.SIGCHLD, signal.SIG_IGN)
+
+	while True:
+		dialog, address = s.accept()
 		print( "Conexión aceptada del socket {0[0]}:{0[1]}.".format( address ) )
-		dialog.append(sc)
-		t = threading.Thread(target=session, args=(dialog[-1],))
-		threads.append(t)
-		t.start()
+		if( os.fork() ):
+			dialog.close()
+		else:
+			s.close()
+			session( dialog )
+			dialog.close()
+			exit( 0 )
