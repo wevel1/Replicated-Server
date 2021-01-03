@@ -157,7 +157,6 @@ def session( s ):
 if __name__ == "__main__":
 	s = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
 	s2 = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
-	s3 = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
 	
 	#Connection with the client.
 	try:
@@ -169,31 +168,20 @@ if __name__ == "__main__":
 	print('Socket bind complete with client')
 	s.listen( 5 )
 	
-	#Connection with replicated server1
+	#Connection with replicated server1 or server2
 	try:
 		s2.bind( ('', PORT2) )
 	except socket.error as msg:
-		print('Bind failed replicated server 2. Error Code : ...')
+		print('Bind failed replicated server 1 or 2. Error Code : ...')
 		sys.exit()
 	
-	print('Socket bind complete with replicated server1')
+	print('Socket bind complete with replicated server1 or server2')
 	s2.listen( 5 )
-	
-	#Connection with replicated server2
-	try:
-		s3.bind( ('', PORT3) )
-	except socket.error as msg:
-		print('Bind failed replicated server2. Error Code : ...')
-		sys.exit()
-	
-	print('Socket bind complete with replicated server2')
-	s3.listen( 5 )
-	
+		
 	#signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 	socketlist = []
 	socketlist.append(s)
 	socketlist.append(s2)
-	socketlist.append(s3)
 
 	threads = []
 	dialog = []

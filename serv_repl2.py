@@ -3,7 +3,8 @@
 import socket, sys, os, signal
 import szasar
 
-PORT = 6014
+SERVER = 'localhost'
+PORT = 6013
 FILES_PATH = "files"
 MAX_FILE_SIZE = 10 * 1 << 20 # 10 MiB
 SPACE_MARGIN = 50 * 1 << 20  # 50 MiB
@@ -168,24 +169,16 @@ if __name__ == "__main__":
     
     #Connection with the main server
 	try:
-		s.bind(('', PORT))
+		s.connect( (SERVER, PORT) )
 	except socket.error as msg:
-		print('Bind failed with main server. Error Code : ...')
+		print('Connection failed with main server. Error Code : ...')
 		sys.exit()
 	
 	print('Socket bind complete with main server')
-	s.listen( 5 )
-
 
 	signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 
 	while True:
-		dialog, address = s.accept()
-		print( "Conexión aceptada del socket {0[0]}:{0[1]}.".format( address ) )
-		if( os.fork() ):
-			dialog.close()
-		else:
-			s.close()
-			session( dialog )
-			dialog.close()
-			exit( 0 )
+		if(1==0):
+			print('kaixo')
+			#Aqui iria parte del codigo.
