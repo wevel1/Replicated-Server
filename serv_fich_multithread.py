@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import time #used for sleep mainly
 import socket, sys, os, signal, threading
 import szasar, select
 
@@ -158,39 +159,39 @@ if __name__ == "__main__":
 	s = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
 	s2 = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
 	s3 = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
-	
+
 	#Connection with the client.
 	try:
 		s.bind(('', PORT))
 	except socket.error as msg:
 		print('Bind failed with client. Error Code : ...')
 		sys.exit()
-	
+
 	print('Socket bind complete with client')
 	s.listen( 5 )
-	
+
 	#Connection with replicated server1
 	try:
 		s2.bind( ('', PORT2) )
 	except socket.error as msg:
 		print('Bind failed replicated server 2. Error Code : ...')
 		sys.exit()
-	
+
 	print('Socket bind complete with replicated server1')
 	s2.listen( 5 )
-	
+
 	#Connection with replicated server2
 	try:
 		s3.bind( ('', PORT3) )
 	except socket.error as msg:
 		print('Bind failed replicated server2. Error Code : ...')
 		sys.exit()
-	
+
 	print('Socket bind complete with replicated server2')
 	s3.listen( 5 )
-	
+
 	#signal.signal(signal.SIGCHLD, signal.SIG_IGN)
-	socketlist = []
+	socketlist = [] #no se deberia hacer append dentro del try de cada socket?
 	socketlist.append(s)
 	socketlist.append(s2)
 	socketlist.append(s3)

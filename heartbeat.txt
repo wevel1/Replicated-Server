@@ -1,0 +1,57 @@
+# Basado en el algoritmo de 3.3
+# Be the processes P1, P2, P3, …, Pn and Pp where Pp is the primary process and P1, …, Pn are the secondary processes grouped in a group called G.
+#
+# Init heartbeat(slist)
+#     For each process in G:
+#       beat(p, m)
+#     End for each
+#     If allProcessesUp() == true
+#         //Case in which all processes are running.
+#         continue() //or do nothing.
+#     Else
+#     //Case in which there is an error, either on the primary or on a secondary.
+#         If checkPrimary() == true
+#             //Case primary running. Failure on secondary.
+#             //objetctive is to reelect primary server, not to solve problems on secondaries
+#         Else
+#             //Case primary down. Elect new primary.
+#             electNewPrimary(G)
+#         End If Else
+#     End If Else
+#     time.sleep(s) ####el tiempo deberia estar fuera de la funcion y que se ejecute la funcion cuando pase ese tiempo????
+# End While
+# End
+#     beat(p, m) ⇒  Function where a process sends a message m every s time to the process p. This function also sends the processes id.
+#     allProcessesUp() ⇒ Function where the primary checks if it received a heartbeat from every process in G. True if all processes are up, false otherwise.
+#     checkPrimary() ⇒ Function where a process checks if the primary process is running. True if the primary is running, false otherwise.
+#     electNewPrimary(G) ⇒ Function where the group of processes G, elects a new primary process.
+#     wait(t) ⇒ Function that pauses the system t milliseconds.
+
+
+#debido a que la funcion esta hecha para identificar si hay un error en el primario,
+#la funcion deberia estar en un proceso que no fuera el primario
+
+#function where a process sends a message m to a proccess p.
+def beat(p, m):
+    p.sendall((m + "\n"%a[0]).encode("ascii")) #queremos enviar el mensaje m al processo p
+
+#boolean function that checks if all the processes of the list received the heartbeat.
+def allProcessesUp(slist):
+    for process
+
+def checkPrimary():
+
+
+#slist is the list of sockets. We can use "socketlist". S is the time
+def heartbeat(s, slist):
+    for process in slist: #for every process in the list of sockets
+        beat(process, "Q") #sending message q to every process
+    #once a beat is sent to all processes, the processes must answer with the message
+    if allProcessesUp(slist) == True :
+        continue
+    else:
+        if checkPrimary() == True:
+            continue
+        else:
+            electNewPrimary(slist)
+    time.sleep(s) #mirar nota de sleep arriba en el pseudocode
