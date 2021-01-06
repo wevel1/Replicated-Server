@@ -2,7 +2,7 @@
 # Be the processes P1, P2, P3, …, Pn and Pp where Pp is the primary process and P1, …, Pn are the secondary processes grouped in a group called G.
 #
 # Init heartbeat(slist)
-#     For each process in G:
+#     For each process in slist:
 #       beat(p, m)
 #     End for each
 #     If allProcessesUp() == true
@@ -27,25 +27,71 @@
 #     electNewPrimary(G) ⇒ Function where the group of processes G, elects a new primary process.
 #     wait(t) ⇒ Function that pauses the system t milliseconds.
 
+# electNewPrimary(G)
+#         Init
+#         For each identifier in L
+#             If L > id
+#                 m= R-broadcast(ElectionMessage)
+#             End if
+#         End for
+#         If m == empty
+#             R-Broadcast(ElectedMessage)
+#         End if
+#         End
+# Upon receiving ElectionMessage the other processes will execute this function.
+# If m is empty, meaning that there was no response to a message from a superior(or there is no superior)
+# they will send ElectedMessage letting the rest of the processes know which process is acting as primary.
+# This will  be implemented as part of the message handling of the server by
+# introducing 2 new orders (EED,EON short for elected and election).
+
 
 #debido a que la funcion esta hecha para identificar si hay un error en el primario,
 #la funcion deberia estar en un proceso que no fuera el primario
 
-#function where a process sends a message m to a proccess p.
-def beat(p, m):
-    p.sendall((m + "\n"%a[0]).encode("ascii")) #queremos enviar el mensaje m al processo p
+#se necesitan variables de id para cada socket. Cuanto mas bajo el numero mas superior es su prioridad
+def electNewPrimary(slist):
+    myID = s.id
+    for process in slist:
+        if process.id != myID and process.id < myID:
+            m = Rbroadcast("EON")
+    if m == empty:
+        Rbroadcast("EED")
+
+def Rbroadcast(m, slist):
+    s.sendall((m + "\n"%a[0]).encode("ascii"))
+    for process in slist:
+        message = process.recvline( s ).decode( "ascii" )
+        if message == "ACK":
+            continue
+        else: #Caso en el que no hay un proceso con id menor
+            return "NO"
+    return empty
+
+#function where a process sends a message m to a proccess p. p is a socket
+def beat(p):
+    p.sendall(("BEAT" + "\n"%a[0]).encode("ascii")) #queremos enviar el mensaje m al processo p
 
 #boolean function that checks if all the processes of the list received the heartbeat.
 def allProcessesUp(slist):
-    for process
+    for process in slist:
+        message = process.recvline( s ).decode( "ascii" )
+        if message == "BEAT":
+            continue
+        else:
+            return False
+    return True
+
 
 def checkPrimary():
-
+    if currentPrimary.recvline( s ).decode("ascii") == "BEAT": #### FALTA MANDAR MENSAJE
+        return True
+    else:
+        return False
 
 #slist is the list of sockets. We can use "socketlist". S is the time
 def heartbeat(s, slist):
     for process in slist: #for every process in the list of sockets
-        beat(process, "Q") #sending message q to every process
+        beat(process) #sending message q to every process
     #once a beat is sent to all processes, the processes must answer with the message
     if allProcessesUp(slist) == True :
         continue
