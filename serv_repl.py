@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
-import socket, sys, os, signal
+import socket, sys, os, signal, threading
 import szasar
 
 SERVER = 'localhost'
 PORT = 6013
-FILES_PATH = "files"
+FILES_PATH = "filesbu"
 MAX_FILE_SIZE = 10 * 1 << 20 # 10 MiB
 SPACE_MARGIN = 50 * 1 << 20  # 50 MiB
 USERS = ("anonimous", "sar", "sza")
@@ -19,6 +19,7 @@ def sendOK( s, params="" ):
 
 def sendER( s, code=1 ):
 	s.sendall( ("ER{}\r\n".format( code )).encode( "ascii" ) )
+
 def separate_path(filename):
 	a = str(filename)
 	d = a.split("/")
@@ -29,6 +30,7 @@ def session( s ):
 
 	while True:
 		message = szasar.recvline( s ).decode( "ascii" )
+		#print("Mezu bat jasota. Estado: " + str(state))
 		if not message:
 			return
 
@@ -38,39 +40,48 @@ def session( s ):
 				continue
 			try:
 				user = USERS.index( message[4:] )
-			except:
-				sendER( s, 2 )
-			else:
-				sendOK( s )
-				state = State.Authentication
-
-		elif message.startswith( szasar.Command.Password ):
-			if state != State.Authentication:
-				sendER( s )
-				continue
-			if( user == 0 or PASSWORDS[user] == message[4:] ):
-				sendOK( s )
+				username = message[4:]
+				filespath = os.path.join( FILES_PATH, username )
+				print("Identification realizada: "+ username)
+				sendOK(s)
+				#s.sendall( ("OK\r\n".encode( "ascii" ) ) )
+				print("OKIdent enviado")
 				state = State.Main
-			else:
-				sendER( s, 3 )
-				state = State.Identification
+			except Exception as e:
+				#print("ERROR en ID: usuario recibido: {}" + str(message[4:]) + "yep")
+				#print("Error en la identificacion")
+				print(e)
+				#sendER( s, 2 )
+				
 
-		elif message.startswith( szasar.Command.List ):
-			if state != State.Main:
-				sendER( s )
-				continue
-			try:
-				message = "OK\r\n"
-				for filename in os.listdir( FILES_PATH ):
-					filesize = os.path.getsize( os.path.join( FILES_PATH, filename ) )
-					message += "{}?{}\r\n".format( filename, filesize )
-				message += "\r\n"
-			except:
-				sendER( s, 4 )
-			else:
-				s.sendall( message.encode( "ascii" ) )
+		# elif message.startswith( szasar.Command.Password ):
+			# if state != State.Authentication:
+				# sendER( s )
+				# continue
+			# if( user == 0 or PASSWORDS[user] == message[4:] ):
+				# sendOK( s )
+				# state = State.Main
+			# else:
+				# sendER( s, 3 )
+				# state = State.Identification
+
+		# elif message.startswith( szasar.Command.List ):
+			# if state != State.Main:
+				# sendER( s )
+				# continue
+			# try:
+				# message = "OK\r\n"
+				# for filename in os.listdir( FILES_PATH ):
+					# filesize = os.path.getsize( os.path.join( FILES_PATH, filename ) )
+					# message += "{}?{}\r\n".format( filename, filesize )
+				# message += "\r\n"
+			# except:
+				# sendER( s, 4 )
+			# else:
+				# s.sendall( message.encode( "ascii" ) )
 
 		elif message.startswith( szasar.Command.Download ):
+			print("Mensaje de descarga detectado")
 			if state != State.Main:
 				sendER( s )
 				continue
@@ -88,7 +99,7 @@ def session( s ):
 			if state != State.Downloading:
 				sendER( s )
 				continue
-			state = State.Main
+			state = State.Identification
 			try:
 				with open( filename, "rb" ) as f:
 					filedata = f.read()
@@ -99,6 +110,7 @@ def session( s ):
 				s.sendall( filedata )
 
 		elif message.startswith( szasar.Command.Upload ):
+			print("Mensaje de subida detectado")
 			if state != State.Main:
 				sendER( s )
 				continue
@@ -108,6 +120,7 @@ def session( s ):
 			filename, filesize = message[4:].split('?')
 			filesize = int(filesize)
 			if filesize > MAX_FILE_SIZE:
+				print("llega error 3")
 				sendER( s, 8 )
 				continue
 			svfs = os.statvfs( FILES_PATH )
@@ -115,30 +128,42 @@ def session( s ):
 				print("llega error 4")
 				sendER( s, 9 )
 				continue
+			print("OK1 enviando")
 			sendOK( s )
+			print("Subida1 completada. filename: {} filesize: {} ".format(filename, filesize))
 			state = State.Uploading
 
 		elif message.startswith( szasar.Command.Upload2 ):
+			print("Fase 2 de la subida")
 			if state != State.Uploading:
 				sendER( s )
 				continue
-			state = State.Main
+			state = State.Identification
 			try:
 				directories = separate_path(filename)
+				print("len(directories): " + str(len(directories)))
 				for i in range(len(directories)):
 					if i==0:
+						print("i es 0")
 						finalpath = ""
 					else:
 						finalpath = os.path.join(finalpath,directories[i])
-						if(os.path.exists(os.path.join( FILES_PATH, finalpath))==False):
+						print("finalpath: " + finalpath)
+						if(os.path.exists(os.path.join( filespath, finalpath))==False):
 							if(i!=len(directories)-1):
-								os.mkdir(os.path.join( FILES_PATH, finalpath))
-				with open( os.path.join( FILES_PATH, finalpath), "wb" ) as f:
+								os.mkdir(os.path.join( filespath, finalpath))
+				print("hemos salido del FOR")
+				with open( os.path.join( filespath, filename), "wb" ) as f:
+					print("Hemos abierto el path")
 					filedata = szasar.recvall( s, filesize )
+					print("Hemos recibido la información")
 					f.write( filedata )
-			except:
+					print("Hemos escrito los datos")
+			except Exception as e:
+				print (e)
 				sendER( s, 10 )
 			else:
+				print("OK2 enviado")
 				sendOK( s )
 
 		elif message.startswith( szasar.Command.Delete ):
@@ -149,7 +174,7 @@ def session( s ):
 				sendER( s, 7 )
 				continue
 			try:
-				os.remove( os.path.join( FILES_PATH, message[4:] ) )
+				os.remove( os.path.join( filespath, message[4:] ) )
 			except:
 				sendER( s, 11 )
 			else:
@@ -174,11 +199,7 @@ if __name__ == "__main__":
 		print('Connection failed with main server. Error Code : ...')
 		sys.exit()
 	
-	print('Socket bind complete with main server')
-
-	signal.signal(signal.SIGCHLD, signal.SIG_IGN)
-
-	while True:
-		if(1==0):
-			print('kaixo')
-			#Aqui iria parte del codigo.
+	print( "Conexión aceptada del socket SERVER {}:{}.".format( SERVER, PORT ) )
+	
+	t = threading.Thread(target=session, args=(s,))
+	t.start()

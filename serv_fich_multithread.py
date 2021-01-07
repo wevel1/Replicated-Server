@@ -5,13 +5,36 @@ import szasar, select
 
 PORT = 6012
 PORT2 = 6013
-PORT3 = 6014
 FILES_PATH = "files"
 MAX_FILE_SIZE = 10 * 1 << 20 # 10 MiB
 SPACE_MARGIN = 50 * 1 << 20  # 50 MiB
 USERS = ("anonimous", "sar", "sza")
 PASSWORDS = ("", "sar", "sza")
+backuplist = []
+socketlist = []
 
+ER_MSG = (
+	"Correcto.",
+	"Comando desconocido o inesperado.",
+	"Usuario desconocido.",
+	"Clave de paso o password incorrecto.",
+	"Error al crear la lista de ficheros.",
+	"El fichero no existe.",
+	"Error al bajar el fichero.",
+	"Un usuario anonimo no tiene permisos para esta operacion.",
+	"El fichero es demasiado grande.",
+	"Error al preparar el fichero para subirlo.",
+	"Error al subir el fichero.",
+	"Error al borrar el fichero." )
+
+def iserror( message ):
+	if( message.startswith( "ER" ) ):
+		code = int( message[2:] )
+		print( ER_MSG[code] )
+		return True
+	else:
+		return False
+		
 class State:
 	Identification, Authentication, Main, Downloading, Uploading = range(5)
 
@@ -20,8 +43,42 @@ def sendOK( s, params="" ):
 
 def sendER( s, code=1 ):
 	s.sendall( ("ER{}\r\n".format( code )).encode( "ascii" ) )
+	
+def sendBU( sBU, user, filename, filesize, filedata ):
+	#Identification, porque al ser multithread no sabrá de donde le viene si no
+	print("Usuario enviado al backup: " + user)
+	message = "{}{}\r\n".format( szasar.Command.User, user )
+	sBU.sendall( message.encode( "ascii" ) )
+	message = szasar.recvline( sBU ).decode( "ascii" )
+	if iserror( message ):
+		return	
+	print("OK0Ident recibido")
+	
+	#UPLOAD1
+	message = "{}{}?{}\r\n".format( szasar.Command.Upload, filename, filesize )
+	sBU.sendall( message.encode( "ascii" ) )
+	print("Upload1 enviado")
+	message = szasar.recvline( sBU ).decode( "ascii" )
+	# if iserror( message ):
+		# return	
+	print("OK1 recibido")
+	if iserror( message ):
+		print(message)
+		return
 
-def session( s ):
+	#UPLOAD2
+	message = "{}\r\n".format( szasar.Command.Upload2 )
+	sBU.sendall( message.encode( "ascii" ) )
+	sBU.sendall( filedata )
+	print("Upload2 enviado")
+	message = szasar.recvline( sBU ).decode( "ascii" )
+	if iserror( message ):
+		return	
+	print("OK2 recibido")
+	if not iserror( message ):
+		print( "El fichero {} se ha enviado correctamente al BACKUP SERVER.".format( filename) )	
+	
+def session( s , backuplist):
 	state = State.Identification
 
 	while True:
@@ -36,6 +93,7 @@ def session( s ):
 				continue
 			try:
 				user = USERS.index( message[4:] )
+				username = message[4:]
 			except:
 				sendER( s, 2 )
 			else:
@@ -125,10 +183,18 @@ def session( s ):
 				with open( os.path.join( filespath, filename), "wb" ) as f:
 					filedata = szasar.recvall( s, filesize )
 					f.write( filedata )
+					print("MAIN: Escrito en la memoria correctamente")
 			except:
 				sendER( s, 10 )
 			else:
+				#Ahora toca subirlo a los BACKUP ANTES DE MANDAR EL OK.
+				print("Numero de copias a realizar: " + str(len(backuplist)))
+				for i in backuplist:
+					print("Se va a realizar la copia en un servidor")
+					sendBU(i, username, filename, filesize, filedata)
+					print("Se ha realizado correctamente la copia")
 				sendOK( s )
+				print("OK enviado al cliente")
 
 		elif message.startswith( szasar.Command.Delete ):
 			if state != State.Main:
@@ -162,7 +228,7 @@ if __name__ == "__main__":
 	try:
 		s.bind(('', PORT))
 	except socket.error as msg:
-		print('Bind failed with client. Error Code : ...')
+		print('Bind failed with client. Error Code : ' + str(msg))
 		sys.exit()
 	
 	print('Socket bind complete with client')
@@ -179,7 +245,7 @@ if __name__ == "__main__":
 	s2.listen( 5 )
 		
 	#signal.signal(signal.SIGCHLD, signal.SIG_IGN)
-	socketlist = []
+	
 	socketlist.append(s)
 	socketlist.append(s2)
 
@@ -189,9 +255,17 @@ if __name__ == "__main__":
 	while (True):
 		readable,_,_ = select.select(socketlist, [], [])
 		ready_server = readable[0]
-		sc, address = ready_server.accept()
-		print( "Conexión aceptada del socket {0[0]}:{0[1]}.".format( address ) )
+		helbidea, portua = ready_server.getsockname()
+		
+		if portua == 6013:
+			sc, address = ready_server.accept()
+			print( "Conexión aceptada del socket SERVER {0[0]}:{0[1]}.".format( address ) )
+			backuplist.append(sc)
+		elif portua == 6012 :
+			sc, address = ready_server.accept()
+			print( "Conexión aceptada del socket CLIENTE {0[0]}:{0[1]}.".format( address ) )
+		
 		dialog.append(sc)
-		t = threading.Thread(target=session, args=(dialog[-1],))
+		t = threading.Thread(target=session, args=(dialog[-1], backuplist))
 		threads.append(t)
 		t.start()
