@@ -85,6 +85,7 @@ if __name__ == "__main__":
 		message = "{}{}\r\n".format( szasar.Command.Password, password )
 		s.sendall( message.encode( "ascii" ) )
 		message = szasar.recvline( s ).decode( "ascii" )
+		print("OK recibido por el main server")
 		if not iserror( message ):
 			break
 
@@ -145,7 +146,7 @@ if __name__ == "__main__":
 				with open( filename, "rb" ) as f:
 					filedata = f.read()
 			except:
-				print( "No se ha podido acceder al fichero {}.".format( filename ) )
+				print( "No se ha podido acceder al fichero {} de tamaño {}.".format( filename, filesize ) )
 				continue
 
 			message = "{}{}?{}\r\n".format( szasar.Command.Upload, filename, filesize )
