@@ -35,7 +35,7 @@ def iserror( message ):
 		return True
 	else:
 		return False
-		
+
 class State:
 	Identification, Authentication, Main, Downloading, Uploading = range(5)
 
@@ -44,41 +44,46 @@ def sendOK( s, params="" ):
 
 def sendER( s, code=1 ):
 	s.sendall( ("ER{}\r\n".format( code )).encode( "ascii" ) )
-	
+
 def sendBU( sBU, user, filename, filesize, filedata ):
 	#Identification, porque al ser multithread no sabrá de donde le viene si no
 	print("Usuario enviado al backup: " + user)
 	message = "{}{}\r\n".format( szasar.Command.User, user )
 	sBU.sendall( message.encode( "ascii" ) )
+	print("Voy a recibir un mensaje de sBU")
 	message = szasar.recvline( sBU ).decode( "ascii" )
+	print("Soy el server y he recibido de sBU: " + message)
 	if iserror( message ):
-		return	
+		print("He entrado al caso en el que el mensaje es error. message: " + message)
+		return
 	print("OK0Ident recibido")
-	
+
 	#UPLOAD1
 	message = "{}{}?{}\r\n".format( szasar.Command.Upload, filename, filesize )
 	sBU.sendall( message.encode( "ascii" ) )
 	print("Upload1 enviado")
 	message = szasar.recvline( sBU ).decode( "ascii" )
+	print("Estoy en upload1 y he recibido: " + message)
 	# if iserror( message ):
-		# return	
+		# return
 	print("OK1 recibido")
 	if iserror( message ):
 		print(message)
 		return
 
 	#UPLOAD2
+	print("Entro en upload 2")
 	message = "{}\r\n".format( szasar.Command.Upload2 )
 	sBU.sendall( message.encode( "ascii" ) )
 	sBU.sendall( filedata )
 	print("Upload2 enviado")
 	message = szasar.recvline( sBU ).decode( "ascii" )
 	if iserror( message ):
-		return	
+		return
 	print("OK2 recibido")
 	if not iserror( message ):
-		print( "El fichero {} se ha enviado correctamente al BACKUP SERVER.".format( filename) )	
-	
+		print( "El fichero {} se ha enviado correctamente al BACKUP SERVER.".format( filename) )
+
 def session( s , backuplist):
 	state = State.Identification
 
@@ -190,10 +195,13 @@ def session( s , backuplist):
 			else:
 				#Ahora toca subirlo a los BACKUP ANTES DE MANDAR EL OK.
 				print("Numero de copias a realizar: " + str(len(backuplist)))
-				for i in backuplist:
-					print("Se va a realizar la copia en un servidor")
-					sendBU(i, username, filename, filesize, filedata)
-					print("Se ha realizado correctamente la copia")
+				#for i in backuplist:
+				#	print("Se va a realizar la copia en un servidor")
+				#	sendBU(i, username, filename, filesize, filedata)
+				#	print("Se ha realizado correctamente la copia en el backup")
+				print("se va a realizar la copia en un servidor")
+				sendBU(sc, username, filename, filesize, filedata)
+				print("Se ha realizado correctamente la copia en el backup")
 				sendOK( s )
 				print("OK enviado al cliente")
 
@@ -224,8 +232,8 @@ def session( s , backuplist):
 if __name__ == "__main__":
 	s = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
 	s2 = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
-	s3 = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
-	
+	#s3 = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
+
 	#Connection with the client.
 	try:
 		s.bind(('', PORT))
@@ -235,27 +243,27 @@ if __name__ == "__main__":
 
 	print('Socket bind complete with client')
 	s.listen( 5 )
-	
+
 	#Connection with replicated server1
 	try:
 		s2.bind( ('', PORT2) )
 	except socket.error as msg:
 		print('Bind failed replicated server 1 or 2. Error Code : ...')
 		sys.exit()
-	
+
 	print('Socket bind complete with replicated server1')
 	s2.listen( 5 )
-	
+
 	#Connection with replicated server2
-	try:
-		s3.bind( ('', PORT3) )
-	except socket.error as msg:
-		print('Bind failed replicated server2. Error Code : ...')
-		sys.exit()
-	
-	print('Socket bind complete with replicated server2')
-	s3.listen( 5 )
-	
+	# try:
+	# 	s3.bind( ('', PORT3) )
+	# except socket.error as msg:
+	# 	print('Bind failed replicated server2. Error Code : ...')
+	# 	sys.exit()
+	#
+	# print('Socket bind complete with replicated server2')
+	# s3.listen( 5 )
+
 	#signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 	socketlist = []
 	socketlist.append(s)
@@ -268,15 +276,16 @@ if __name__ == "__main__":
 		readable,_,_ = select.select(socketlist, [], [])
 		ready_server = readable[0]
 		helbidea, portua = ready_server.getsockname()
-		
+
 		if portua == 6013:
 			sc, address = ready_server.accept()
 			print( "Conexión aceptada del socket SERVER {0[0]}:{0[1]}.".format( address ) )
 			backuplist.append(sc)
+			print("server added to the backup list")
 		elif portua == 6012 :
 			sc, address = ready_server.accept()
 			print( "Conexión aceptada del socket CLIENTE {0[0]}:{0[1]}.".format( address ) )
-		
+
 		dialog.append(sc)
 		t = threading.Thread(target=session, args=(dialog[-1], backuplist))
 		threads.append(t)
