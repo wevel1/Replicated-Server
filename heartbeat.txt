@@ -60,7 +60,7 @@ def electNewPrimary(slist):
 def Rbroadcast(m, slist):
     s.sendall((m + "\n"%a[0]).encode("ascii"))
     for process in slist:
-        message = process.recvline( s ).decode( "ascii" )
+        message = szasar.recvline( s ).decode( "ascii" )
         if message == "ACK":
             continue
         else: #Caso en el que no hay un proceso con id menor
@@ -74,7 +74,7 @@ def beat(p):
 #boolean function that checks if all the processes of the list received the heartbeat.
 def allProcessesUp(slist):
     for process in slist:
-        message = process.recvline( s ).decode( "ascii" )
+        message = szasar.recvline( s ).decode( "ascii" )
         if message == "BEAT":
             continue
         else:
