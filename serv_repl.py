@@ -4,7 +4,8 @@ import socket, sys, os, signal, threading
 import szasar
 
 SERVER = 'localhost'
-PORT = 6013
+PORT = 6012 #backup server
+PORT2 = 6013 #main server
 FILES_PATH = "filesbu"
 MAX_FILE_SIZE = 10 * 1 << 20 # 10 MiB
 SPACE_MARGIN = 50 * 1 << 20  # 50 MiB
@@ -29,12 +30,16 @@ def session( s ):
 	state = State.Identification
 
 	while True:
-		message = szasar.recvline( s ).decode( "ascii" )
-		#print("Mezu bat jasota. Estado: " + str(state))
+		print("Hola soy el serverBU")
+		message = szasar.recvline( s2 ).decode( "ascii" )
+		print("Mezu bat jasota. Estado: " + str(state))
+		print("Mezu bat jasota. Msg: " + message)
 		if not message:
+			print("No habia mensaje en sBU")
 			return
 
 		if message.startswith( szasar.Command.User ):
+			print("sBU ha entrado en user")
 			if( state != State.Identification ):
 				sendER( s )
 				continue
@@ -44,7 +49,7 @@ def session( s ):
 				filespath = os.path.join( FILES_PATH, username )
 				print("Identification realizada: "+ username)
 				sendOK(s)
-				#s.sendall( ("OK\r\n".encode( "ascii" ) ) )
+				s.sendall( ("OK\r\n".encode( "ascii" ) ) )
 				print("OKIdent enviado")
 				state = State.Main
 			except Exception as e:
@@ -52,7 +57,7 @@ def session( s ):
 				#print("Error en la identificacion")
 				print(e)
 				#sendER( s, 2 )
-				
+
 
 		# elif message.startswith( szasar.Command.Password ):
 			# if state != State.Authentication:
@@ -190,16 +195,34 @@ def session( s ):
 
 
 if __name__ == "__main__":
-	s = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
-    
-    #Connection with the main server
+	s = socket.socket( socket.AF_INET, socket.SOCK_STREAM ) #socket de enviar al main
+	s2 = socket.socket( socket.AF_INET, socket.SOCK_STREAM ) #socket de recibir del main
+
+	#Connection with the main server
+
 	try:
-		s.connect( (SERVER, PORT) )
+		s.connect( (SERVER, PORT2) )
 	except socket.error as msg:
 		print('Connection failed with main server. Error Code : ...')
 		sys.exit()
-	
-	print( "Conexión aceptada del socket SERVER {}:{}.".format( SERVER, PORT ) )
-	
+
+	#s.listen(5)
+	#s.accept()
+
+	try:
+		#s2.bind(('', PORT))
+		s2.connect( (SERVER, PORT2) )
+	except socket.error as msg:
+		print('Connection failed with backup server. Error Code : ...')
+		sys.exit()
+
+	#s2.listen( 5 )
+	#s2.accept()
+
+	#signal.signal(signal.SIGCHLD, signal.SIG_IGN)
+
+	print( "Conexión aceptada del socket SERVER {}:{}.".format( SERVER, PORT2 ) )
+
+
 	t = threading.Thread(target=session, args=(s,))
 	t.start()

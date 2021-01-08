@@ -47,9 +47,11 @@ def sendER( s, code=1 ):
 
 def sendBU( sBU, user, filename, filesize, filedata ):
 	#Identification, porque al ser multithread no sabrá de donde le viene si no
+	print ("BU CHECK user: " + str(user) + " filename: " + str(filename) + " filesize: " + str(filesize) + " filedata: " + str(filedata))
 	print("Usuario enviado al backup: " + user)
 	message = "{}{}\r\n".format( szasar.Command.User, user )
 	sBU.sendall( message.encode( "ascii" ) )
+	#time.sleep(1)###############################################################
 	print("Voy a recibir un mensaje de sBU")
 	message = szasar.recvline( sBU ).decode( "ascii" )
 	print("Soy el server y he recibido de sBU: " + message)
@@ -200,6 +202,7 @@ def session( s , backuplist):
 				#	sendBU(i, username, filename, filesize, filedata)
 				#	print("Se ha realizado correctamente la copia en el backup")
 				print("se va a realizar la copia en un servidor")
+				print ("CHECK user: " + str(username) + " filename: " + str(filename) + " filesize: " + str(filesize) + " filedata: " + str(filedata))
 				sendBU(sc, username, filename, filesize, filedata)
 				print("Se ha realizado correctamente la copia en el backup")
 				sendOK( s )
@@ -246,13 +249,15 @@ if __name__ == "__main__":
 
 	#Connection with replicated server1
 	try:
-		s2.bind( ('', PORT2) )
+		s2.bind(('', PORT2))
+		print("Connection with backup server succesfull")
 	except socket.error as msg:
 		print('Bind failed replicated server 1 or 2. Error Code : ...')
 		sys.exit()
 
 	print('Socket bind complete with replicated server1')
 	s2.listen( 5 )
+
 
 	#Connection with replicated server2
 	# try:
@@ -267,24 +272,30 @@ if __name__ == "__main__":
 	#signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 	socketlist = []
 	socketlist.append(s)
+	time.sleep(1)
 	socketlist.append(s2)
 
 	threads = []
 	dialog = []
 
+	print(len(socketlist))
+	#print(socketlist)
 	while (True):
 		readable,_,_ = select.select(socketlist, [], [])
 		ready_server = readable[0]
 		helbidea, portua = ready_server.getsockname()
-
+		print("Puerto: " + str(portua))
 		if portua == 6013:
 			sc, address = ready_server.accept()
+			print("In case server")
 			print( "Conexión aceptada del socket SERVER {0[0]}:{0[1]}.".format( address ) )
 			backuplist.append(sc)
 			print("server added to the backup list")
-		elif portua == 6012 :
+		elif portua == 6012:
+			print("In case Client")
 			sc, address = ready_server.accept()
 			print( "Conexión aceptada del socket CLIENTE {0[0]}:{0[1]}.".format( address ) )
+			i = 1
 
 		dialog.append(sc)
 		t = threading.Thread(target=session, args=(dialog[-1], backuplist))

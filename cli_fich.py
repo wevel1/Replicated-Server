@@ -73,6 +73,7 @@ if __name__ == "__main__":
 	s = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
 	s.connect( (SERVER, PORT) )
 
+
 	while True:
 		user = input( "Introduce el nombre de usuario: " )
 		message = "{}{}\r\n".format( szasar.Command.User, user )
