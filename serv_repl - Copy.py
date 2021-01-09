@@ -26,11 +26,11 @@ def separate_path(filename):
 	d = a.split("/")
 	return d
 
-def session( s, i ):
+def session( s ):
 	state = State.Identification
-	f_path = FILES_PATH + str(i)
+
 	while True:
-		print("Hola soy el serverBU{}. Mi filepath es: {}".format(i, f_path))
+		print("Hola soy el serverBU")
 		message = szasar.recvline( s ).decode( "ascii" )
 		print("RECV: Estado: " + str(state) + "Msg: " + message)
 		if not message:
@@ -46,7 +46,7 @@ def session( s, i ):
 			try:
 				user = USERS.index( message[4:] )
 				username = message[4:]
-				filespath = os.path.join( f_path, username )
+				filespath = os.path.join( FILES_PATH, username )
 				print("IDENT: Identification realizada: "+ username)
 				sendOK( s )
 				helbidea, portua = s.getsockname()
@@ -77,8 +77,8 @@ def session( s, i ):
 				# continue
 			# try:
 				# message = "OK\r\n"
-				# for filename in os.listdir( f_path ):
-					# filesize = os.path.getsize( os.path.join( f_path, filename ) )
+				# for filename in os.listdir( FILES_PATH ):
+					# filesize = os.path.getsize( os.path.join( FILES_PATH, filename ) )
 					# message += "{}?{}\r\n".format( filename, filesize )
 				# message += "\r\n"
 			# except:
@@ -91,7 +91,7 @@ def session( s, i ):
 			if state != State.Main:
 				sendER( s )
 				continue
-			filename = os.path.join( f_path, message[4:] )
+			filename = os.path.join( FILES_PATH, message[4:] )
 			try:
 				filesize = os.path.getsize( filename )
 			except:
@@ -129,7 +129,7 @@ def session( s, i ):
 				print("llega error 3")
 				sendER( s, 8 )
 				continue
-			svfs = os.statvfs( f_path )
+			svfs = os.statvfs( FILES_PATH )
 			if filesize + SPACE_MARGIN > svfs.f_bsize * svfs.f_bavail:
 				print("llega error 4")
 				sendER( s, 9 )
@@ -196,36 +196,34 @@ def session( s, i ):
 
 
 if __name__ == "__main__":
-	# s = socket.socket( socket.AF_INET, socket.SOCK_STREAM ) #socket de enviar al main
-	# s2 = socket.socket( socket.AF_INET, socket.SOCK_STREAM ) #socket de recibir del main
-	
-	n = sys.argv[1]
-	print("Se van a crear {} backup servers".format(n))
-	
+	s = socket.socket( socket.AF_INET, socket.SOCK_STREAM ) #socket de enviar al main
+	s2 = socket.socket( socket.AF_INET, socket.SOCK_STREAM ) #socket de recibir del main
+
 	#Connection with the main server
-	for i in range(int(n)):
-		try:
-			s = socket.socket( socket.AF_INET, socket.SOCK_STREAM ) #socket de enviar al main
-			#puerto = PORT2 + i
-			#print(str(puerto))
-			print("Intento {} de {} de conectarse a main".format(i, n))
-			s.connect( (SERVER, PORT2 ))
-		except socket.error as msg:
-			print(msg)
-			sys.exit()
-			
-	# for i in range(int(n)):
-		# try:
-			# puerto = PORT2 + i
-			# print(str(puerto))
-			# print("Intento {} de {} de conectarse a main".format(i, n))
-			# s.connect( (SERVER, puerto ))
-		# except socket.error as msg:
-			# print(msg)
-			# sys.exit()
-		#signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 
-		print( "Conexión aceptada del socket SERVER {} de {} = {}:{}.".format(i, n, SERVER, PORT2 ) )
+	try:
+		s.connect( (SERVER, PORT2) )
+	except socket.error as msg:
+		print('Connection failed with main server. Error Code : ...')
+		sys.exit()
 
-		t = threading.Thread(target=session, args=(s, i,))
-		t.start()
+	#s.listen(5)
+	#s.accept()
+
+	# try:
+		# #s2.bind(('', PORT))
+		# s2.connect( (SERVER, PORT2) )
+	# except socket.error as msg:
+		# print('Connection failed with backup server. Error Code : ...')
+		# sys.exit()
+
+	#s2.listen( 5 )
+	#s2.accept()
+
+	#signal.signal(signal.SIGCHLD, signal.SIG_IGN)
+
+	print( "Conexión aceptada del socket SERVER {}:{}.".format( SERVER, PORT2 ) )
+
+
+	t = threading.Thread(target=session, args=(s,))
+	t.start()
