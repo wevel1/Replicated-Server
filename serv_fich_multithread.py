@@ -6,7 +6,6 @@ import szasar, select
 
 PORT = 6012
 PORT2 = 6013
-PORT3 = 6014
 FILES_PATH = "files"
 MAX_FILE_SIZE = 10 * 1 << 20 # 10 MiB
 SPACE_MARGIN = 50 * 1 << 20  # 50 MiB
@@ -53,20 +52,14 @@ def sendBU( sBU, user, filename, filesize, filedata ):
 	print("IDENT: Usuario enviado al backup: " + user)
 	message = "{}{}\r\n".format( szasar.Command.User, user )
 	sBU.sendall( message.encode( "ascii" ) )
-	print("IDENT: Voy a recibir un mensaje de sBU")
 	try:
 		message = szasar.recvline( sBU ).decode( "ascii" )
-		print("IDENT: Soy el server y he recibido de sBU: " + message)
 	except:
 		sendER( s, 2 )
-	# else:
-		# print("IDENT: Le mando el OK")
-		# sendOK( s )
 	
 	if iserror( message ):
 		print("ERROR1: He entrado al caso en el que el mensaje es error. message: " + message)
 		return
-	print("IDENT: OK0 recibido")
 
 	#UPLOAD1
 	print(" ======= UPLOAD1 ======= ")
@@ -74,11 +67,9 @@ def sendBU( sBU, user, filename, filesize, filedata ):
 	sBU.sendall( message.encode( "ascii" ) )
 	print("Upload1 enviado")
 	message = szasar.recvline( sBU ).decode( "ascii" )
-	print("Estoy en upload1 y he recibido: " + message)
 	if iserror( message ):
 		print("ERROR2: He entrado al caso en el que el mensaje es error. message: " + message)
 		return
-	print("OK1 recibido")
 
 	#UPLOAD2
 	print(" ======= UPLOAD2 ======= ")
@@ -87,11 +78,9 @@ def sendBU( sBU, user, filename, filesize, filedata ):
 	sBU.sendall( filedata )
 	print("Upload2 enviado")
 	message = szasar.recvline( sBU ).decode( "ascii" )
-	print("Estoy en upload2 y he recibido: " + message)
 	if iserror( message ):
 		print("ERROR3: He entrado al caso en el que el mensaje es error. message: " + message)
 		return
-	print("OK2 recibido")
 	if not iserror( message ):
 		print( "El fichero {} se ha enviado correctamente al BACKUP SERVER.".format( filename) )
 
@@ -99,9 +88,9 @@ def session( s , backuplist):
 	state = State.Identification
 
 	while True:
-		print("---SERVER: A la espera de un mensaje........................")
+		#print("---SERVER: A la espera de un mensaje........................")
 		message = szasar.recvline( s ).decode( "ascii" )
-		print( "---SERVER: Leido msg {} {}\r\n.".format( message[0:4], message[4:] ) )
+		#print( "---SERVER: Leido msg {} {}\r\n.".format( message[0:4], message[4:] ) )
 		if not message:
 			return
 
@@ -208,11 +197,13 @@ def session( s , backuplist):
 				#Ahora toca subirlo a los BACKUP ANTES DE MANDAR EL OK.
 				print("Numero de copias a realizar: " + str(len(backuplist)))
 				sbu = backuplist[0]
+				i=0
 				for i in backuplist:
 					print("Se va a realizar la copia en un servidor")
 					print ("CHECK user: " + str(username) + " filename: " + str(filename) + " filesize: " + str(filesize) + " filedata: " + str(filedata))
 					sendBU(i, username, filename, filesize, filedata)
-					print("Se ha realizado correctamente la copia en el backup")
+					print("Se ha realizado correctamente la copia en el BackupServer" + str(i))
+					i += 1
 				sendOK( s )
 				print("OK enviado al cliente")
 
@@ -248,42 +239,29 @@ if __name__ == "__main__":
 	#Connection with the client.
 	try:
 		s.bind(('', PORT))
-		print("Bind with client succesfull")
+		print("Bind with clients succesfull")
 	except socket.error as msg:
 		print('Bind failed with client. Error Code : ' + str(msg))
 		sys.exit()
 	s.listen( 5 )
 
-	#Connection with replicated server1
+	#Connection with replicated server1 and server2
 	try:
 		s2.bind(('', PORT2))
-		print("Bind with backup server1 succesfull")
+		print("Bind with backup servers succesfull")
 	except socket.error as msg:
 		print('Bind failed replicated server 1 or 2. Error Code : ...')
 		sys.exit()
 	s2.listen( 5 )
 
-
-	#Connection with replicated server2
-	try:
-		s3.bind(('', PORT3))
-		print("Bind with backup server2 succesfull")
-	except socket.error as msg:
-		print('Bind failed replicated server 1 or 2. Error Code : ...')
-		sys.exit()
-	s3.listen( 5 )
-	
 	#signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 	socketlist = []
 	socketlist.append(s)
 	socketlist.append(s2)
-	socketlist.append(s3)
 
 	threads = []
 	dialog = []
 
-	print(len(socketlist))
-	#print(socketlist)
 	while (True):
 		readable,_,_ = select.select(socketlist, [], [])
 		ready_server = readable[0]

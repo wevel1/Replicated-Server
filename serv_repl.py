@@ -32,9 +32,9 @@ def session( s, i ):
 	while True:
 		print("Hola soy el serverBU{}. Mi filepath es: {}".format(i, f_path))
 		message = szasar.recvline( s ).decode( "ascii" )
-		print("RECV: Estado: " + str(state) + "Msg: " + message)
+		#print("RECV: Estado: " + str(state) + "Msg: " + message)
 		if not message:
-			print("No habia mensaje en sBU")
+			print("ERROR: No habia mensaje en sBU")
 			return
 
 		if message.startswith( szasar.Command.User ):
@@ -150,7 +150,6 @@ def session( s, i ):
 				print("len(directories): " + str(len(directories)))
 				for i in range(len(directories)):
 					if i==0:
-						print("i es 0")
 						finalpath = ""
 					else:
 						finalpath = os.path.join(finalpath,directories[i])
@@ -158,15 +157,14 @@ def session( s, i ):
 						if(os.path.exists(os.path.join( filespath, finalpath))==False):
 							if(i!=len(directories)-1):
 								os.mkdir(os.path.join( filespath, finalpath))
-				print("hemos salido del FOR")
 				with open( os.path.join( filespath, filename), "wb" ) as f:
 					print("Hemos abierto el path")
 					filedata = szasar.recvall( s, filesize )
 					print("Hemos recibido la información")
 					f.write( filedata )
 					print("Hemos escrito los datos")
-			except Exception as e:
 				print (e)
+			except:
 				sendER( s, 10 )
 			else:
 				print("OK2 enviado")
@@ -196,35 +194,19 @@ def session( s, i ):
 
 
 if __name__ == "__main__":
-	# s = socket.socket( socket.AF_INET, socket.SOCK_STREAM ) #socket de enviar al main
-	# s2 = socket.socket( socket.AF_INET, socket.SOCK_STREAM ) #socket de recibir del main
-	
 	n = sys.argv[1]
 	print("Se van a crear {} backup servers".format(n))
 	
 	#Connection with the main server
 	for i in range(int(n)):
 		try:
-			s = socket.socket( socket.AF_INET, socket.SOCK_STREAM ) #socket de enviar al main
-			#puerto = PORT2 + i
-			#print(str(puerto))
-			print("Intento {} de {} de conectarse a main".format(i, n))
+			s = socket.socket( socket.AF_INET, socket.SOCK_STREAM ) #Create new socket for each server.
+			print("Intento {} de {} de conectarse a main server".format(i, n))
 			s.connect( (SERVER, PORT2 ))
 		except socket.error as msg:
 			print(msg)
 			sys.exit()
 			
-	# for i in range(int(n)):
-		# try:
-			# puerto = PORT2 + i
-			# print(str(puerto))
-			# print("Intento {} de {} de conectarse a main".format(i, n))
-			# s.connect( (SERVER, puerto ))
-		# except socket.error as msg:
-			# print(msg)
-			# sys.exit()
-		#signal.signal(signal.SIGCHLD, signal.SIG_IGN)
-
 		print( "Conexión aceptada del socket SERVER {} de {} = {}:{}.".format(i, n, SERVER, PORT2 ) )
 
 		t = threading.Thread(target=session, args=(s, i,))
