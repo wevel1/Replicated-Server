@@ -13,6 +13,7 @@ USERS = ("anonimous", "sar", "sza")
 PASSWORDS = ("", "sar", "sza")
 backuplist = []
 socketlist = []
+primary = None
 
 ER_MSG = (
 	"Correcto.",
@@ -87,8 +88,8 @@ def sendBU( sBU, user, filename, filesize, filedata ):
 
 
 def beat(p):
-    p.sendall(("BEAT\r\n").encode("ascii")) #queremos enviar el mensaje m al processo 
-    ready = select.select([p], [], [], 2)
+	p.sendall(("BEAT\r\n").encode("ascii")) #queremos enviar el mensaje m al processo 
+	ready = select.select([p], [], [], 2)
 	if not ready[0]:
 		return False
 	else:
@@ -100,12 +101,12 @@ def beat(p):
 
 def heartbeat(slist):
 	time.sleep(5)
-    for process in slist: #for every process in the list of sockets
-        response = beat(process) #sending message q to every process
-        if(response == False and process == primary):
-        	print("Hay que implementar lo de nuevo primario")
-        elif(response == False and process != primary):
-        	print("deslistar al servidor no primario de la lista de backup")
+	for process in slist: #for every process in the list of sockets
+		response = beat(process) #sending message q to every process
+		if(response == False and process == primary):
+ 			print("Hay que implementar lo de nuevo primario")
+		elif(response == False and process != primary):
+			print("deslistar al servidor no primario de la lista de backup")
 
 def session( s , backuplist):
 	state = State.Identification
@@ -285,7 +286,7 @@ if __name__ == "__main__":
 
 	threads = []
 	dialog = []
-
+	primary = s
 	while (True):
 		readable,_,_ = select.select(socketlist, [], [])
 		ready_server = readable[0]
