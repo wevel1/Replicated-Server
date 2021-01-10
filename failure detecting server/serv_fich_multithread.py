@@ -48,7 +48,6 @@ def sendER( s, code=1 ):
 	s.sendall( ("ER{}\r\n".format( code )).encode( "ascii" ) )
 
 def sendBEAT( s ):
-	#time.sleep(0.5)
 	s.sendall( ("B\r\n".encode( "ascii" )))
 
 def sendBU( sBU, user, filename, filesize, filedata ):
@@ -111,37 +110,41 @@ def sendBU( sBU, user, filename, filesize, filedata ):
 
 
 def beat(p):
-	print("Estoy en Beat")
+	print("=== BEAT ===")
 	slist = []
 	slist.append(p)
 	sendBEAT(p)
-	#p.sendall(("BEAT\r\n").encode("ascii")) #queremos enviar el mensaje m al processo
-	ready = select.select(slist, [], [], 7000)
+	#p.send(("BEAT\r\n").encode("ascii")) #queremos enviar el mensaje m al processo
+	ready = select.select(slist, [], [], 30)
 	if not ready[0]:
-		print("Not ready. Beat mal: " + message)
+		print("Not ready. Timeout ocurred")
 		return False
 	else:
-		message = szasar.recvline( p ).decode( "ascii" )
-		if message.startswith("B"): #if ok
-			print("Beat bien")
-			return True
-		else:
-			print("Beat mal: " + message)
+		try:
+			message = szasar.recvline( p ).decode( "ascii" )
+			if message.startswith("B"): #if ok
+				print("+++++++ Beat bien")
+				return True
+		except:
+			print("Beat mal... :( ")
 			return False
 
-def heartbeat(slist):
-	#print("en la slist hay: " + str(slist))
-	slist2 = []
-	slist2.append(slist)
+def heartbeat():
+	time.sleep(2)
+	print("===HEARTBEAT===")
+	print("HB: En la slist hay: " + str(len(backuplist)))
 	while True:
 		time.sleep(2)
-		for process in slist2: #for every process in the list of sockets
-			print("Sending beat to process")
+		for process in backuplist: #for every process in the list of sockets
+			helbidea, portua = s.getsockname()
+			print("Sending beat to process {}:{}".format(helbidea, portua))
 			response = beat(process) #sending message q to every process
 			if(response == False and process == primary):
 				print("Hay que implementar lo de nuevo primario")
 			elif(response == False and process != primary):
 				print("deslistar al servidor no primario de la lista de backup")
+				backuplist.remove(process)
+		print(" =!=!=!=!=!=!=!=!=!=!=!=!=!=!=!=!")
 
 def session( s , backuplist):
 	state = State.Identification
@@ -315,30 +318,29 @@ if __name__ == "__main__":
 		sys.exit()
 	s2.listen( 5 )
 
-	#signal.signal(signal.SIGCHLD, signal.SIG_IGN)
+	signal.signal(signal.SIGCHLD, signal.SIG_IGN)
+
 	socketlist = []
 	socketlist.append(s)
 	socketlist.append(s2)
 
 	threads = []
-	dialog = []
+	dialog = [] 
 	primary = s
-	#i = 0
+	i = 0
 	while (True):
 		readable,_,_ = select.select(socketlist, [], [])
 		ready_server = readable[0]
 		helbidea, portua = ready_server.getsockname()
 		print("Puerto: " + str(portua))
 		if portua == 6013:
-			#if i == 0:
-			#	i = 1
 			sc, address = ready_server.accept()
 			print( "Conexión aceptada del socket SERVER {0[0]}:{0[1]}.".format( address ) )
 			backuplist.append(sc)
-			#if i == 1:
-			t2 = threading.Thread(target=heartbeat, args=(backuplist))
-			t2.start()
-			#i = 2
+			if i == 0 :
+				t2 = threading.Thread(target=heartbeat, args=())
+				t2.start()
+				i = 1
 		elif portua == 6012:
 			sc, address = ready_server.accept()
 			print( "Conexión aceptada del socket CLIENTE {0[0]}:{0[1]}.".format( address ) )

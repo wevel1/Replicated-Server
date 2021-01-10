@@ -13,6 +13,7 @@ USERS = ("anonimous", "sar", "sza")
 PASSWORDS = ("", "sar", "sza")
 backuplist = []
 socketlist = []
+primary = None
 
 ER_MSG = (
 	"Correcto.",
@@ -45,6 +46,9 @@ def sendOK( s, params="" ):
 def sendER( s, code=1 ):
 	s.sendall( ("ER{}\r\n".format( code )).encode( "ascii" ) )
 
+def sendBEAT( s ):
+	s.sendall( ("B\r\n".encode( "ascii" )))
+
 def sendBU( sBU, user, filename, filesize, filedata ):
 	#Identification phase
 	message = "{}{}\r\n".format( szasar.Command.User, user )
@@ -76,7 +80,7 @@ def sendBU( sBU, user, filename, filesize, filedata ):
 	if not iserror( message ):
 		print( "The file {} has been uploaded correctly to the BackupServer".format( filename) )
 	else:
-		print("Some 
+		print("Has not been possible to make UPLOAD2 on the BackupServer")
 
 def deleteBU( sBU, user, filename ):
 	
@@ -99,8 +103,43 @@ def deleteBU( sBU, user, filename ):
 	else:
 		print("Has not been possible to make delete on the BackupServer")
 		return
-		
+
+def beat(p):
+	print("=== BEAT ===")
+	slist = []
+	slist.append(p)
+	sendBEAT(p) 
+	ready = select.select(slist, [], [], 30)
+	if not ready[0]:
+		print("Not ready. Timeout ocurred")
+		return False
+	else:
+		try:
+			message = szasar.recvline( p ).decode( "ascii" )
+			if message.startswith("B"): #if ok
+				print("+++++++ Beat bien")
+				return True
+		except:
+			print("Beat mal... :( ")
+			return False	
 	
+def heartbeat():
+	time.sleep(2)
+	print("===HEARTBEAT===")
+	print("HB: En la slist hay: " + str(len(backuplist)))
+	while True:
+		time.sleep(2)
+		for process in backuplist: #for every process in the list of sockets
+			helbidea, portua = s.getsockname()
+			print("Sending beat to process {}:{}".format(helbidea, portua))
+			response = beat(process) #sending message q to every process
+			if(response == False and process == primary):
+				print("Hay que implementar lo de nuevo primario")
+			elif(response == False and process != primary):
+				print("deslistar al servidor no primario de la lista de backup")
+				backuplist.remove(process)
+		print(" =!=!=!=!=!=!=!=!=!=!=!=!=!=!=!=!")
+
 
 def session( s , backuplist):
 	state = State.Identification
@@ -237,7 +276,10 @@ def session( s , backuplist):
 			sendOK( s )
 			s.close()
 			return
-
+		
+		elif message.startswith(szasar.Command.Beat):
+			print("Session: Msg identificado como beat")
+			#sendBEAT( s )
 		else:
 			sendER( s )
 
@@ -274,6 +316,8 @@ if __name__ == "__main__":
 	threads = []
 	dialog = []
 
+	primary = s
+	i = 0
 	while (True):
 		readable,_,_ = select.select(socketlist, [], [])
 		ready_server = readable[0]
@@ -283,6 +327,10 @@ if __name__ == "__main__":
 			sc, address = ready_server.accept()
 			print( "Conexión aceptada del socket SERVER {0[0]}:{0[1]}.".format( address ) )
 			backuplist.append(sc)
+			if i == 0 :
+				t2 = threading.Thread(target=heartbeat, args=())
+				t2.start()
+				i = 1
 		elif portua == 6012:
 			sc, address = ready_server.accept()
 			print( "Conexión aceptada del socket CLIENTE {0[0]}:{0[1]}.".format( address ) )
