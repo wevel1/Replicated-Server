@@ -61,8 +61,21 @@ def heartbeat(backuplist):
 			response = beat(process) #sending message q to every process
 			if(response == False and process == primary):
 				print("Hay que implementar lo de nuevo primario")
+				electNewPrimary()
 			elif(response == False and process != primary):
 				print("deslistar al servidor no primario de la lista de backup")
+				backuplist.remove(process)
+
+def electNewPrimary():
+	for process in backuplist:
+		process.sendall( ("ELON\r\n".encode( "ascii" )))
+		ready = select.select([process], [], [], 7000)
+		if not ready[0]:
+			continue
+		else:
+			message = szasar.recvline( s ).decode( "ascii" )
+			if(message.startswith("OK")):
+				primary = process
 
 
 def session( s, i ):
@@ -92,7 +105,8 @@ def session( s, i ):
 				#print("Error en la identificacion")
 				print(e)
 				#sendER( s, 2 )
-
+		elif message.startswith(szasar.Command.Elon):
+			sendOK(s)
 		elif message.startswith(szasar.Command.Sock):
 			sockets =  s.recv(4096)
 			backupprim = pickle.loads(sockets)

@@ -135,10 +135,21 @@ def heartbeat():
 			response = beat(process) #sending message q to every process
 			if(response == False and process == primary):
 				print("Hay que implementar lo de nuevo primario")
+				electNewPrimary()
 			elif(response == False and process != primary):
 				print("deslistar al servidor no primario de la lista de backup")
 				backuplist.remove(process)
 		print(" =!=!=!=!=!=!=!=!=!=!=!=!=!=!=!=!")
+def electNewPrimary():
+	for process in backuplist:
+		process.sendall( ("ELON\r\n".encode( "ascii" )))
+		ready = select.select([process], [], [], 7000)
+		if not ready[0]:
+			continue
+		else:
+			message = szasar.recvline( s ).decode( "ascii" )
+			if(message.startswith("OK")):
+				primary = process
 
 def sendSocketList(slist):
 	for process in backuplist:
@@ -166,7 +177,8 @@ def session( s , backuplist):
 			else:
 				sendOK( s )
 				state = State.Authentication
-
+		elif message.startswith(szasar.Command.Elon):
+			sendOK(s)		
 		elif message.startswith( szasar.Command.Password ):
 			if state != State.Authentication:
 				sendER( s )
