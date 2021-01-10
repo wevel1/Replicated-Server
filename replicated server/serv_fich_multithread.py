@@ -76,7 +76,7 @@ def sendBU( sBU, user, filename, filesize, filedata ):
 	if not iserror( message ):
 		print( "The file {} has been uploaded correctly to the BackupServer".format( filename) )
 	else:
-		print("Some 
+		print("Has not been possible to make UPLOAD1 on the BackupServer") 
 
 def deleteBU( sBU, user, filename ):
 	
