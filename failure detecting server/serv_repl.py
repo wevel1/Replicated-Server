@@ -26,6 +26,27 @@ def separate_path(filename):
 	d = a.split("/")
 	return d
 
+
+def beat(p):
+    p.sendall(("BEAT\r\n").encode("ascii")) #queremos enviar el mensaje m al processo 
+    ready = select.select([p], [], [], 2)
+	if not ready[0]:
+		return False
+	else:
+		message = szasar.recvline( p ).decode( "ascii" )
+		if not iserror(message):
+			return True
+
+def heartbeat(slist):
+	while true:
+		time.sleep(5)
+	    for process in slist: #for every process in the list of sockets
+	        response = beat(process) #sending message q to every process
+	        if(response == False and process == primary):
+	        	print("Hay que implementar lo de nuevo primario")
+	        elif(response == False and process != primary):
+	        	print("deslistar al servidor no primario de la lista de backup")
+
 def session( s, i ):
 	state = State.Identification
 	f_path = FILES_PATH + str(i)
@@ -187,7 +208,8 @@ def session( s, i ):
 		elif message.startswith( szasar.Command.Exit ):
 			sendOK( s )
 			return
-
+		elif message.startswith(szasar.Command.Beat):
+			sendOK( s )
 		else:
 			sendER( s )
 
@@ -210,4 +232,6 @@ if __name__ == "__main__":
 		print( "Conexión aceptada del socket SERVER {} de {} = {}:{}.".format(i, n, SERVER, PORT2 ) )
 
 		t = threading.Thread(target=session, args=(s, i,))
+		t2 = threading.Thread(target=heartbeat, args=(s))
 		t.start()
+		t2.start()

@@ -84,6 +84,29 @@ def sendBU( sBU, user, filename, filesize, filedata ):
 	if not iserror( message ):
 		print( "El fichero {} se ha enviado correctamente al BACKUP SERVER.".format( filename) )
 
+
+
+def beat(p):
+    p.sendall(("BEAT\r\n").encode("ascii")) #queremos enviar el mensaje m al processo 
+    ready = select.select([p], [], [], 2)
+	if not ready[0]:
+		return False
+	else:
+		message = szasar.recvline( p ).decode( "ascii" )
+		if not iserror(message):
+			return True
+
+
+
+def heartbeat(slist):
+	time.sleep(5)
+    for process in slist: #for every process in the list of sockets
+        response = beat(process) #sending message q to every process
+        if(response == False and process == primary):
+        	print("Hay que implementar lo de nuevo primario")
+        elif(response == False and process != primary):
+        	print("deslistar al servidor no primario de la lista de backup")
+
 def session( s , backuplist):
 	state = State.Identification
 
@@ -225,7 +248,8 @@ def session( s , backuplist):
 			sendOK( s )
 			s.close()
 			return
-
+		elif message.startswith(szasar.Command.Beat):
+			sendOK( s )
 		else:
 			sendER( s )
 
@@ -271,6 +295,8 @@ if __name__ == "__main__":
 			sc, address = ready_server.accept()
 			print( "Conexión aceptada del socket SERVER {0[0]}:{0[1]}.".format( address ) )
 			backuplist.append(sc)
+			t2 = threading.Thread(target=heartbeat, args=(backuplist))
+			t2.start()
 		elif portua == 6012:
 			sc, address = ready_server.accept()
 			print( "Conexión aceptada del socket CLIENTE {0[0]}:{0[1]}.".format( address ) )
@@ -278,5 +304,6 @@ if __name__ == "__main__":
 			t = threading.Thread(target=session, args=(dialog[-1], backuplist))
 			threads.append(t)
 			t.start()
+			
 
 		

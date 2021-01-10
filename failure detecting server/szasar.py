@@ -1,5 +1,5 @@
 class Command:
-	User, Password, List, Download, Download2, Upload, Upload2, Delete, Exit = ("USER", "PASS", "LIST", "DOWN", "DOW2", "UPLO", "UPL2", "DELE", "EXIT")
+	User, Password, List, Download, Download2, Upload, Upload2, Delete, Exit, Beat = ("USER", "PASS", "LIST", "DOWN", "DOW2", "UPLO", "UPL2", "DELE", "EXIT","BEAT")
 
 def recvline( s, removeEOL = True ):
 	print("He entrado en szasar recvline")
