@@ -1,8 +1,8 @@
 class Command:
-	User, Password, List, Download, Download2, Upload, Upload2, Delete, Exit, Beat = ("USER", "PASS", "LIST", "DOWN", "DOW2", "UPLO", "UPL2", "DELE", "EXIT","BEAT")
+	User, Password, List, Download, Download2, Upload, Upload2, Delete, Exit, Beat = ("USER", "PASS", "LIST", "DOWN", "DOW2", "UPLO", "UPL2", "DELE", "EXIT","B")
 
 def recvline( s, removeEOL = True ):
-	print("He entrado en szasar recvline")
+	#print("He entrado en szasar recvline")
 	line = b''
 	CRreceived = False
 	while True:
@@ -14,11 +14,9 @@ def recvline( s, removeEOL = True ):
 			CRreceived = True
 		elif c == b'\n' and CRreceived:
 			if removeEOL:
-				print("1")
 				print("linea: " + line.decode('ascii'))
 				return line[:-2]
 			else:
-				print("2")
 				print("linea: " + line.decode('ascii'))
 				return line
 		else:

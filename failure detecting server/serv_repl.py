@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 
 import socket, sys, os, signal, threading
-import szasar
+import szasar, select
+import time
 
 SERVER = 'localhost'
 PORT = 6012 #backup server
 PORT2 = 6013 #main server
+
 FILES_PATH = "filesbu"
 MAX_FILE_SIZE = 10 * 1 << 20 # 10 MiB
 SPACE_MARGIN = 50 * 1 << 20  # 50 MiB
 USERS = ("anonimous", "sar", "sza")
 PASSWORDS = ("", "sar", "sza")
+primary = None
 
 class State:
 	Identification, Authentication, Main, Downloading, Uploading = range(5)
@@ -21,39 +24,77 @@ def sendOK( s, params="" ):
 def sendER( s, code=1 ):
 	s.sendall( ("ER{}\r\n".format( code )).encode( "ascii" ) )
 
+
+def sendBEAT( s ):
+	#time.sleep(0.5)
+	s.sendall( ("B\r\n".encode( "ascii" ) ))
+
 def separate_path(filename):
 	a = str(filename)
 	d = a.split("/")
 	return d
 
 
+# #se necesitan variables de id para cada socket. Cuanto mas bajo el numero mas superior es su prioridad
+# def electNewPrimary(slist):
+#     myID = s.id
+#     for process in slist:
+#         if process.id != myID and process.id < myID:
+#             m = Rbroadcast("EON", slist)
+#     if m == empty:
+#         Rbroadcast("EED", slist)
+#
+# def Rbroadcast(m, slist):
+#     s.sendall((m + "\n"%a[0]).encode("ascii"))
+#     for process in slist:
+#         message = szasar.recvline( s ).decode( "ascii" )
+#         if message == "ACK":
+#             continue
+#         else: #Caso en el que no hay un proceso con id menor
+#             return "NO"
+#     return None
+
+
 def beat(p):
-    p.sendall(("BEAT\r\n").encode("ascii")) #queremos enviar el mensaje m al processo 
-    ready = select.select([p], [], [], 2)
+	print("Estoy en Beat")
+	slist = []
+	slist.append(p)
+	sendBEAT(p)
+	#p.sendall(("BE\r\n").encode("ascii")) #queremos enviar el mensaje m al processo
+	ready = select.select(slist, [], [], 7000)
 	if not ready[0]:
+		print("Not ready. Beat mal: " + message)
 		return False
 	else:
 		message = szasar.recvline( p ).decode( "ascii" )
-		if not iserror(message):
+		if message.startswith("B"): #if ok
+			print("Beat bien")
 			return True
+		else:
+			print("Beat mal: " + message)
+			return False
 
 def heartbeat(slist):
-	while true:
-		time.sleep(5)
-	    for process in slist: #for every process in the list of sockets
-	        response = beat(process) #sending message q to every process
-	        if(response == False and process == primary):
-	        	print("Hay que implementar lo de nuevo primario")
-	        elif(response == False and process != primary):
-	        	print("deslistar al servidor no primario de la lista de backup")
+	#print("en la slist hay: " + str(slist))
+	slist2 = []
+	slist2.append(slist)
+	while True:
+		time.sleep(2)
+		for process in slist2: #for every process in the list of sockets
+			print("Sending beat to process")
+			response = beat(process) #sending message q to every process
+			if(response == False and process == primary):
+				print("Hay que implementar lo de nuevo primario")
+			elif(response == False and process != primary):
+				print("deslistar al servidor no primario de la lista de backup")
 
 def session( s, i ):
 	state = State.Identification
 	f_path = FILES_PATH + str(i)
 	while True:
-		print("Hola soy el serverBU{}. Mi filepath es: {}".format(i, f_path))
+		print("Session: Hola soy el serverBU{}. Mi filepath es: {}".format(i, f_path))
 		message = szasar.recvline( s ).decode( "ascii" )
-		#print("RECV: Estado: " + str(state) + "Msg: " + message)
+		print("RECV: Estado: " + str(state) + "Msg: " + message)
 		if not message:
 			print("ERROR: No habia mensaje en sBU")
 			return
@@ -209,7 +250,8 @@ def session( s, i ):
 			sendOK( s )
 			return
 		elif message.startswith(szasar.Command.Beat):
-			sendOK( s )
+			print("Session: Msg identificado como beat")
+			#sendBEAT( s )
 		else:
 			sendER( s )
 
@@ -218,7 +260,7 @@ def session( s, i ):
 if __name__ == "__main__":
 	n = sys.argv[1]
 	print("Se van a crear {} backup servers".format(n))
-	
+
 	#Connection with the main server
 	for i in range(int(n)):
 		try:
@@ -228,10 +270,12 @@ if __name__ == "__main__":
 		except socket.error as msg:
 			print(msg)
 			sys.exit()
-			
-		print( "Conexión aceptada del socket SERVER {} de {} = {}:{}.".format(i, n, SERVER, PORT2 ) )
 
+		print( "Conexión aceptada del socket SERVER {} de {} = {}:{}.".format(i, n, SERVER, PORT2 ) )
+		primary = s
+		slist = []
+		slist.append(s)
 		t = threading.Thread(target=session, args=(s, i,))
-		t2 = threading.Thread(target=heartbeat, args=(s))
+		t2 = threading.Thread(target=heartbeat, args=(slist))
 		t.start()
 		t2.start()
