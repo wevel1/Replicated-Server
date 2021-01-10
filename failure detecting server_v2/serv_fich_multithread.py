@@ -140,10 +140,13 @@ def heartbeat():
 				backuplist.remove(process)
 		print(" =!=!=!=!=!=!=!=!=!=!=!=!=!=!=!=!")
 
+def sendSocketList(slist):
+	for process in backuplist:
+		process.send(pickle.dumps(slist))
 
 def session( s , backuplist):
 	state = State.Identification
-
+	sendSocketlist(backuplist)
 	while True:
 		#print("---SERVER: A la espera de un mensaje........................")
 		message = szasar.recvline( s ).decode( "ascii" )
@@ -331,6 +334,7 @@ if __name__ == "__main__":
 				t2 = threading.Thread(target=heartbeat, args=())
 				t2.start()
 				i = 1
+
 		elif portua == 6012:
 			sc, address = ready_server.accept()
 			print( "Conexión aceptada del socket CLIENTE {0[0]}:{0[1]}.".format( address ) )

@@ -11,6 +11,8 @@ MAX_FILE_SIZE = 10 * 1 << 20 # 10 MiB
 SPACE_MARGIN = 50 * 1 << 20  # 50 MiB
 USERS = ("anonimous", "sar", "sza")
 PASSWORDS = ("", "sar", "sza")
+backuplist = []
+primary = None
 
 class State:
 	Identification, Authentication, Main, Downloading, Uploading = range(5)
@@ -48,7 +50,7 @@ def beat(p):
 			print("Beat mal: " + message)
 			return False
 
-def heartbeat(slist):
+def heartbeat(backuplist):
 	#print("en la slist hay: " + str(slist))
 	slist2 = []
 	slist2.append(slist)
@@ -91,32 +93,41 @@ def session( s, i ):
 				print(e)
 				#sendER( s, 2 )
 
+		elif message.startswith(szasar.Command.Sock):
+			sockets =  s.recv(4096)
+			backupprim = pickle.loads(sockets)
+			backuplist = []
+			backuplist.append(s)
 
-		# elif message.startswith( szasar.Command.Password ):
-			# if state != State.Authentication:
-				# sendER( s )
-				# continue
-			# if( user == 0 or PASSWORDS[user] == message[4:] ):
-				# sendOK( s )
-				# state = State.Main
-			# else:
-				# sendER( s, 3 )
-				# state = State.Identification
+			for process in backupprim:
+				backuplist.append(process)
 
-		# elif message.startswith( szasar.Command.List ):
-			# if state != State.Main:
-				# sendER( s )
-				# continue
-			# try:
-				# message = "OK\r\n"
-				# for filename in os.listdir( f_path ):
-					# filesize = os.path.getsize( os.path.join( f_path, filename ) )
-					# message += "{}?{}\r\n".format( filename, filesize )
-				# message += "\r\n"
-			# except:
-				# sendER( s, 4 )
-			# else:
-				# s.sendall( message.encode( "ascii" ) )
+
+		elif message.startswith( szasar.Command.Password ):
+			if state != State.Authentication:
+				sendER( s )
+				continue
+			if( user == 0 or PASSWORDS[user] == message[4:] ):
+				sendOK( s )
+				state = State.Main
+			else:
+				sendER( s, 3 )
+				state = State.Identification
+
+		elif message.startswith( szasar.Command.List ):
+			if state != State.Main:
+				sendER( s )
+				continue
+			try:
+				message = "OK\r\n"
+				for filename in os.listdir( f_path ):
+					filesize = os.path.getsize( os.path.join( f_path, filename ) )
+					message += "{}?{}\r\n".format( filename, filesize )
+				message += "\r\n"
+			except:
+				sendER( s, 4 )
+			else:
+				s.sendall( message.encode( "ascii" ) )
 
 		elif message.startswith( szasar.Command.Download ):
 			print("Mensaje de descarga detectado")
@@ -227,6 +238,7 @@ if __name__ == "__main__":
 			s = socket.socket( socket.AF_INET, socket.SOCK_STREAM ) #Create new socket for each server.
 			print("Intento {} de {} de conectarse a main server".format(i, n))
 			s.connect( (SERVER, PORT2 ))
+			primary = s
 		except socket.error as msg:
 			print(msg)
 			sys.exit()
@@ -235,3 +247,4 @@ if __name__ == "__main__":
 
 		t = threading.Thread(target=session, args=(s, i,))
 		t.start()
+		t2 = threading.Thread(target=heartbeat, args=())
