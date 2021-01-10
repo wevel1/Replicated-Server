@@ -46,29 +46,24 @@ def sendER( s, code=1 ):
 	s.sendall( ("ER{}\r\n".format( code )).encode( "ascii" ) )
 
 def sendBU( sBU, user, filename, filesize, filedata ):
-	#IDENT
-	print(" ======= BU IDENT ======= ")
-	print ("BU CHECK user: " + str(user) + " filename: " + str(filename) + " filesize: " + str(filesize) + " filedata: " + str(filedata))
-	print("IDENT: Usuario enviado al backup: " + user)
+	#Identification phase
 	message = "{}{}\r\n".format( szasar.Command.User, user )
 	sBU.sendall( message.encode( "ascii" ) )
-	try:
-		message = szasar.recvline( sBU ).decode( "ascii" )
-	except:
-		sendER( s, 2 )
-	
-	if iserror( message ):
-		print("ERROR1: He entrado al caso en el que el mensaje es error. message: " + message)
+	message = szasar.recvline( sBU ).decode( "ascii" )
+	if not iserror( message ):
+		print("Identification has been done correctly with the BackupServer")
+	else 
+		print("Has not been possible to identify on the backup server")
 		return
 
 	#UPLOAD1
-	print(" ======= UPLOAD1 ======= ")
 	message = "{}{}?{}\r\n".format( szasar.Command.Upload, filename, filesize )
 	sBU.sendall( message.encode( "ascii" ) )
-	print("Upload1 enviado")
 	message = szasar.recvline( sBU ).decode( "ascii" )
-	if iserror( message ):
-		print("ERROR2: He entrado al caso en el que el mensaje es error. message: " + message)
+	if not iserror( message ):
+		print("UPLOAD1 has been done correctly with the BackupServer ")
+	else 
+		print("Has not been possible to make UPLOAD1 on the BackupServer")
 		return
 
 	#UPLOAD2
@@ -78,11 +73,34 @@ def sendBU( sBU, user, filename, filesize, filedata ):
 	sBU.sendall( filedata )
 	print("Upload2 enviado")
 	message = szasar.recvline( sBU ).decode( "ascii" )
-	if iserror( message ):
-		print("ERROR3: He entrado al caso en el que el mensaje es error. message: " + message)
-		return
 	if not iserror( message ):
-		print( "El fichero {} se ha enviado correctamente al BACKUP SERVER.".format( filename) )
+		print( "The file {} has been uploaded correctly to the BackupServer".format( filename) )
+	else
+		print("Some 
+
+def deleteBU( sBU, user, filename ):
+	
+	#Identification phase
+	message = "{}{}\r\n".format( szasar.Command.User, user )
+	sBU.sendall( message.encode( "ascii" ) )
+	message = szasar.recvline( sBU ).decode( "ascii" )
+	if not iserror( message ):
+		print("Identification has been done correctly with the BackupServer")
+	else 
+		print("Has not been possible to make UPLOAD2 on the BackupServer")
+		return
+		
+	#Delete phase
+	message = "{}{}\r\n".format( szasar.Command.Delete, filename )
+	sBU.sendall( message.encode( "ascii" ) )
+	message = szasar.recvline( sBU ).decode( "ascii" )
+	if not iserror( message ):
+		print("Delete has been done correctly with the BackupServer")
+	else 
+		print("Has not been possible to make delete on the BackupServer")
+		return
+		
+	
 
 def session( s , backuplist):
 	state = State.Identification
@@ -190,22 +208,13 @@ def session( s , backuplist):
 				with open( os.path.join( filespath, filename), "wb" ) as f:
 					filedata = szasar.recvall( s, filesize )
 					f.write( filedata )
-					print("MAIN: Escrito en la memoria correctamente")
 			except:
 				sendER( s, 10 )
 			else:
-				#Ahora toca subirlo a los BACKUP ANTES DE MANDAR EL OK.
-				print("Numero de copias a realizar: " + str(len(backuplist)))
-				sbu = backuplist[0]
-				i=0
+				#Upload to the secondary servers before sending ACK to the client
 				for i in backuplist:
-					print("Se va a realizar la copia en un servidor")
-					print ("CHECK user: " + str(username) + " filename: " + str(filename) + " filesize: " + str(filesize) + " filedata: " + str(filedata))
 					sendBU(i, username, filename, filesize, filedata)
-					print("Se ha realizado correctamente la copia en el BackupServer" + str(i))
-					i += 1
 				sendOK( s )
-				print("OK enviado al cliente")
 
 		elif message.startswith( szasar.Command.Delete ):
 			if state != State.Main:
@@ -219,6 +228,9 @@ def session( s , backuplist):
 			except:
 				sendER( s, 11 )
 			else:
+				#Delete from the secondary servers before sending ACK to the client
+				for i in backuplist:
+					deleteBU(i, username, message[4:])
 				sendOK( s )
 
 		elif message.startswith( szasar.Command.Exit ):
@@ -254,7 +266,7 @@ if __name__ == "__main__":
 		sys.exit()
 	s2.listen( 5 )
 
-	#signal.signal(signal.SIGCHLD, signal.SIG_IGN)
+	signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 	socketlist = []
 	socketlist.append(s)
 	socketlist.append(s2)

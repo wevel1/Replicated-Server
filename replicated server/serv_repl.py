@@ -30,28 +30,23 @@ def session( s, i ):
 	state = State.Identification
 	f_path = FILES_PATH + str(i)
 	while True:
-		print("Hola soy el serverBU{}. Mi filepath es: {}".format(i, f_path))
+		#print("Hola soy el serverBU{}. Mi filepath es: {}".format(i, f_path))
 		message = szasar.recvline( s ).decode( "ascii" )
 		#print("RECV: Estado: " + str(state) + "Msg: " + message)
 		if not message:
-			print("ERROR: No habia mensaje en sBU")
 			return
 
 		if message.startswith( szasar.Command.User ):
-			print("IDENT: sBU ha entrado en identificacion")
 			if( state != State.Identification ):
-				print("IDENT: Error en la identificacion")
 				sendER( s )
 				continue
 			try:
 				user = USERS.index( message[4:] )
 				username = message[4:]
 				filespath = os.path.join( f_path, username )
-				print("IDENT: Identification realizada: "+ username)
 				sendOK( s )
 				helbidea, portua = s.getsockname()
 				helbidea2 = s.getpeername()
-				print("IDENT: OKIdent enviado")
 				state = State.Main
 			except Exception as e:
 				#print("ERROR en ID: usuario recibido: {}" + str(message[4:]) + "yep")
@@ -116,7 +111,6 @@ def session( s, i ):
 				s.sendall( filedata )
 
 		elif message.startswith( szasar.Command.Upload ):
-			print("Mensaje de subida detectado")
 			if state != State.Main:
 				sendER( s )
 				continue
@@ -126,48 +120,37 @@ def session( s, i ):
 			filename, filesize = message[4:].split('?')
 			filesize = int(filesize)
 			if filesize > MAX_FILE_SIZE:
-				print("llega error 3")
 				sendER( s, 8 )
 				continue
 			svfs = os.statvfs( f_path )
 			if filesize + SPACE_MARGIN > svfs.f_bsize * svfs.f_bavail:
-				print("llega error 4")
 				sendER( s, 9 )
 				continue
-			print("OK1 enviando")
 			sendOK( s )
-			print("Subida1 completada. filename: {} filesize: {} ".format(filename, filesize))
 			state = State.Uploading
 
 		elif message.startswith( szasar.Command.Upload2 ):
-			print("Fase 2 de la subida")
 			if state != State.Uploading:
 				sendER( s )
 				continue
 			state = State.Identification
 			try:
 				directories = separate_path(filename)
-				print("len(directories): " + str(len(directories)))
 				for i in range(len(directories)):
 					if i==0:
 						finalpath = ""
 					else:
 						finalpath = os.path.join(finalpath,directories[i])
-						print("finalpath: " + finalpath)
 						if(os.path.exists(os.path.join( filespath, finalpath))==False):
 							if(i!=len(directories)-1):
 								os.mkdir(os.path.join( filespath, finalpath))
 				with open( os.path.join( filespath, filename), "wb" ) as f:
-					print("Hemos abierto el path")
 					filedata = szasar.recvall( s, filesize )
-					print("Hemos recibido la información")
 					f.write( filedata )
-					print("Hemos escrito los datos")
 				print (e)
 			except:
 				sendER( s, 10 )
 			else:
-				print("OK2 enviado")
 				sendOK( s )
 
 		elif message.startswith( szasar.Command.Delete ):
@@ -177,6 +160,7 @@ def session( s, i ):
 			if user == 0:
 				sendER( s, 7 )
 				continue
+			state = State.Identification
 			try:
 				os.remove( os.path.join( filespath, message[4:] ) )
 			except:
