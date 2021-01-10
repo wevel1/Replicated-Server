@@ -53,9 +53,9 @@ def electNewPrimary(slist):
     myID = s.id
     for process in slist:
         if process.id != myID and process.id < myID:
-            m = Rbroadcast("EON")
+            m = Rbroadcast("EON", slist)
     if m == empty:
-        Rbroadcast("EED")
+        Rbroadcast("EED", slist)
 
 def Rbroadcast(m, slist):
     s.sendall((m + "\n"%a[0]).encode("ascii"))
@@ -65,7 +65,7 @@ def Rbroadcast(m, slist):
             continue
         else: #Caso en el que no hay un proceso con id menor
             return "NO"
-    return empty
+    return None
 
 #function where a process sends a message m to a proccess p. p is a socket
 def beat(p):

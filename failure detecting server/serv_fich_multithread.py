@@ -6,6 +6,7 @@ import szasar, select
 
 PORT = 6012
 PORT2 = 6013
+
 FILES_PATH = "files"
 MAX_FILE_SIZE = 10 * 1 << 20 # 10 MiB
 SPACE_MARGIN = 50 * 1 << 20  # 50 MiB
@@ -46,6 +47,10 @@ def sendOK( s, params="" ):
 def sendER( s, code=1 ):
 	s.sendall( ("ER{}\r\n".format( code )).encode( "ascii" ) )
 
+def sendBEAT( s ):
+	#time.sleep(0.5)
+	s.sendall( ("B\r\n".encode( "ascii" )))
+
 def sendBU( sBU, user, filename, filesize, filedata ):
 	#IDENT
 	print(" ======= BU IDENT ======= ")
@@ -57,7 +62,7 @@ def sendBU( sBU, user, filename, filesize, filedata ):
 		message = szasar.recvline( sBU ).decode( "ascii" )
 	except:
 		sendER( s, 2 )
-	
+
 	if iserror( message ):
 		print("ERROR1: He entrado al caso en el que el mensaje es error. message: " + message)
 		return
@@ -85,34 +90,64 @@ def sendBU( sBU, user, filename, filesize, filedata ):
 	if not iserror( message ):
 		print( "El fichero {} se ha enviado correctamente al BACKUP SERVER.".format( filename) )
 
+# #se necesitan variables de id para cada socket. Cuanto mas bajo el numero mas superior es su prioridad
+# def electNewPrimary(slist):
+#     myID = s.id
+#     for process in slist:
+#         if process.id != myID and process.id < myID:
+#             m = Rbroadcast("EON", slist)
+#     if m == empty:
+#         Rbroadcast("EED", slist)
+#
+# def Rbroadcast(m, slist):
+#     s.sendall((m + "\n"%a[0]).encode("ascii"))
+#     for process in slist:
+#         message = szasar.recvline( s ).decode( "ascii" )
+#         if message == "ACK":
+#             continue
+#         else: #Caso en el que no hay un proceso con id menor
+#             return "NO"
+#     return None
 
 
 def beat(p):
-	p.sendall(("BEAT\r\n").encode("ascii")) #queremos enviar el mensaje m al processo 
-	ready = select.select([p], [], [], 2)
+	print("Estoy en Beat")
+	slist = []
+	slist.append(p)
+	sendBEAT(p)
+	#p.sendall(("BEAT\r\n").encode("ascii")) #queremos enviar el mensaje m al processo
+	ready = select.select(slist, [], [], 7000)
 	if not ready[0]:
+		print("Not ready. Beat mal: " + message)
 		return False
 	else:
 		message = szasar.recvline( p ).decode( "ascii" )
-		if not iserror(message):
+		if message.startswith("B"): #if ok
+			print("Beat bien")
 			return True
-
-
+		else:
+			print("Beat mal: " + message)
+			return False
 
 def heartbeat(slist):
-	time.sleep(5)
-	for process in slist: #for every process in the list of sockets
-		response = beat(process) #sending message q to every process
-		if(response == False and process == primary):
- 			print("Hay que implementar lo de nuevo primario")
-		elif(response == False and process != primary):
-			print("deslistar al servidor no primario de la lista de backup")
+	#print("en la slist hay: " + str(slist))
+	slist2 = []
+	slist2.append(slist)
+	while True:
+		time.sleep(2)
+		for process in slist2: #for every process in the list of sockets
+			print("Sending beat to process")
+			response = beat(process) #sending message q to every process
+			if(response == False and process == primary):
+				print("Hay que implementar lo de nuevo primario")
+			elif(response == False and process != primary):
+				print("deslistar al servidor no primario de la lista de backup")
 
 def session( s , backuplist):
 	state = State.Identification
 
 	while True:
-		#print("---SERVER: A la espera de un mensaje........................")
+		print("---SERVER: A la espera de un mensaje........................")
 		message = szasar.recvline( s ).decode( "ascii" )
 		#print( "---SERVER: Leido msg {} {}\r\n.".format( message[0:4], message[4:] ) )
 		if not message:
@@ -250,7 +285,8 @@ def session( s , backuplist):
 			s.close()
 			return
 		elif message.startswith(szasar.Command.Beat):
-			sendOK( s )
+			print("Session: Msg identificado como beat")
+			#sendBEAT( s )
 		else:
 			sendER( s )
 
@@ -287,17 +323,22 @@ if __name__ == "__main__":
 	threads = []
 	dialog = []
 	primary = s
+	#i = 0
 	while (True):
 		readable,_,_ = select.select(socketlist, [], [])
 		ready_server = readable[0]
 		helbidea, portua = ready_server.getsockname()
 		print("Puerto: " + str(portua))
 		if portua == 6013:
+			#if i == 0:
+			#	i = 1
 			sc, address = ready_server.accept()
 			print( "Conexión aceptada del socket SERVER {0[0]}:{0[1]}.".format( address ) )
 			backuplist.append(sc)
+			#if i == 1:
 			t2 = threading.Thread(target=heartbeat, args=(backuplist))
 			t2.start()
+			#i = 2
 		elif portua == 6012:
 			sc, address = ready_server.accept()
 			print( "Conexión aceptada del socket CLIENTE {0[0]}:{0[1]}.".format( address ) )
@@ -305,6 +346,3 @@ if __name__ == "__main__":
 			t = threading.Thread(target=session, args=(dialog[-1], backuplist))
 			threads.append(t)
 			t.start()
-			
-
-		
