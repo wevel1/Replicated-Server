@@ -64,6 +64,7 @@ def sendBU( sBU, user, filename, filesize, filedata ):
 	#UPLOAD1
 	message = "{}{}?{}\r\n".format( szasar.Command.Upload, filename, filesize )
 	sBU.sendall( message.encode( "ascii" ) )
+	#print("Upload1 enviado. MSG: " + message)
 	message = szasar.recvline( sBU ).decode( "ascii" )
 	if not iserror( message ):
 		print("UPLOAD1 has been done correctly with the BackupServer ")
@@ -76,7 +77,7 @@ def sendBU( sBU, user, filename, filesize, filedata ):
 	message = "{}\r\n".format( szasar.Command.Upload2 )
 	sBU.sendall( message.encode( "ascii" ) )
 	sBU.sendall( filedata )
-	print("Upload2 enviado")
+	#print("Upload2 enviado. MSG: " + message)
 	message = szasar.recvline( sBU ).decode( "ascii" )
 	if not iserror( message ):
 		print( "The file {} has been uploaded correctly to the BackupServer".format( filename) )
@@ -256,7 +257,9 @@ def session( s , backuplist):
 			state = State.Uploading
 
 		elif message.startswith( szasar.Command.Upload2 ):
+			print("He entrado en Session Upload2")
 			if state != State.Uploading:
+				print("He entrado en el error de state de upload2")
 				sendER( s )
 				continue
 			state = State.Main
@@ -270,6 +273,7 @@ def session( s , backuplist):
 				#Upload to the secondary servers before sending ACK to the client
 				for i in backuplist:
 					sendBU(i, username, filename, filesize, filedata)
+				print("Upload2. Voy a enviar el OK")
 				sendOK( s )
 
 		elif message.startswith( szasar.Command.Delete ):

@@ -225,8 +225,9 @@ def session( s, i ):
 					print("Hemos recibido la información")
 					f.write( filedata )
 					print("Hemos escrito los datos")
-				print (e)
+				#print (e) #este print hace que entre en el except
 			except:
+				print("UPLOAD2: He entrado en el except.")
 				sendER( s, 10 )
 			else:
 				print("OK2 enviado")
@@ -249,7 +250,7 @@ def session( s, i ):
 		elif message.startswith( szasar.Command.Exit ):
 			sendOK( s )
 			return
-			
+
 		elif message.startswith(szasar.Command.Beat):
 			print("Session: Msg identificado como beat")
 			sendBEAT( s )
@@ -273,7 +274,7 @@ if __name__ == "__main__":
 			sys.exit()
 
 		print( "Conexión aceptada del socket SERVER {} de {} = {}:{}.".format(i, n, SERVER, PORT2 ) )
-		
+
 		primary = s
 		t = threading.Thread(target=session, args=(s, i,))
 		t.start()

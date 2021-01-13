@@ -209,7 +209,7 @@ def session( s, i ):
 				with open( os.path.join( filespath, filename), "wb" ) as f:
 					filedata = szasar.recvall( s, filesize )
 					f.write( filedata )
-				print (e)
+				#print (e) #este print hacia que entrara en el except
 			except:
 				sendER( s, 10 )
 			else:
@@ -237,7 +237,7 @@ def session( s, i ):
 		elif message.startswith(szasar.Command.Beat):
 			print("Session: Msg identificado como beat")
 			sendBEAT( s )
-			
+
 		else:
 			sendER( s )
 
@@ -256,7 +256,7 @@ if __name__ == "__main__":
 		except socket.error as msg:
 			print(msg)
 			sys.exit()
-			
+
 		print( "Conexión aceptada del socket SERVER {} de {} = {}:{}.".format(i, n, SERVER, PORT2 ) )
 
 		t = threading.Thread(target=session, args=(s, i,))
