@@ -265,7 +265,7 @@ def session( s , backuplist):
 					print ("CHECK user: " + str(username) + " filename: " + str(filename) + " filesize: " + str(filesize) + " filedata: " + str(filedata))
 					sendBU(i, username, filename, filesize, filedata)
 					print("Se ha realizado correctamente la copia en el BackupServer" + str(i))
-					#i += 1
+					#i += 1 #no es necesario aumentar esto, el for lo hace solo. Ademas de que i es un ELEMENTO de backuplist, no un int.
 				sendOK( s )
 				print("OK enviado al cliente")
 

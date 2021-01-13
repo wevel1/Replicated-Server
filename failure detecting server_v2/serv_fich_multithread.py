@@ -3,6 +3,7 @@
 import time #used for sleep mainly
 import socket, sys, os, signal, threading
 import szasar, select
+import pickle
 
 PORT = 6012
 PORT2 = 6013
@@ -151,14 +152,14 @@ def electNewPrimary():
 			message = szasar.recvline( s ).decode( "ascii" )
 			if(message.startswith("OK")):
 				primary = process
-
-def sendSocketList(slist):
-	for process in backuplist:
-		process.send(pickle.dumps(slist))
+###NO FUNCIONA, CANNOT SERIALIZE SOCKET OBJECT
+# def sendSocketList(slist):
+# 	for process in backuplist:
+# 		process.send(pickle.dumps(slist))
 
 def session( s , backuplist):
 	state = State.Identification
-	sendSocketList(backuplist)
+	#sendSocketList(backuplist)
 	while True:
 		#print("---SERVER: A la espera de un mensaje........................")
 		message = szasar.recvline( s ).decode( "ascii" )
