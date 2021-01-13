@@ -83,7 +83,7 @@ def sendBU( sBU, user, filename, filesize, filedata ):
 		print("Has not been possible to make UPLOAD2 on the BackupServer")
 
 def deleteBU( sBU, user, filename ):
-	
+
 	#Identification phase
 	message = "{}{}\r\n".format( szasar.Command.User, user )
 	sBU.sendall( message.encode( "ascii" ) )
@@ -93,7 +93,7 @@ def deleteBU( sBU, user, filename ):
 	else:
 		print("Has not been possible to make UPLOAD2 on the BackupServer")
 		return
-		
+
 	#Delete phase
 	message = "{}{}\r\n".format( szasar.Command.Delete, filename )
 	sBU.sendall( message.encode( "ascii" ) )
@@ -108,7 +108,7 @@ def beat(p):
 	print("=== BEAT ===")
 	slist = []
 	slist.append(p)
-	sendBEAT(p) 
+	sendBEAT(p)
 	ready = select.select(slist, [], [], 30)
 	if not ready[0]:
 		print("Not ready. Timeout ocurred")
@@ -121,8 +121,8 @@ def beat(p):
 				return True
 		except:
 			print("Beat mal... :( ")
-			return False	
-	
+			return False
+
 def heartbeat():
 	time.sleep(2)
 	print("===HEARTBEAT===")
@@ -140,6 +140,7 @@ def heartbeat():
 				print("deslistar al servidor no primario de la lista de backup")
 				backuplist.remove(process)
 		print(" =!=!=!=!=!=!=!=!=!=!=!=!=!=!=!=!")
+
 def electNewPrimary():
 	for process in backuplist:
 		process.sendall( ("ELON\r\n".encode( "ascii" )))
@@ -157,7 +158,7 @@ def sendSocketList(slist):
 
 def session( s , backuplist):
 	state = State.Identification
-	sendSocketlist(backuplist)
+	sendSocketList(backuplist)
 	while True:
 		#print("---SERVER: A la espera de un mensaje........................")
 		message = szasar.recvline( s ).decode( "ascii" )
@@ -178,7 +179,7 @@ def session( s , backuplist):
 				sendOK( s )
 				state = State.Authentication
 		elif message.startswith(szasar.Command.Elon):
-			sendOK(s)		
+			sendOK(s)
 		elif message.startswith( szasar.Command.Password ):
 			if state != State.Authentication:
 				sendER( s )
@@ -291,7 +292,7 @@ def session( s , backuplist):
 			sendOK( s )
 			s.close()
 			return
-		
+
 		elif message.startswith(szasar.Command.Beat):
 			print("Session: Msg identificado como beat")
 			#sendBEAT( s )
@@ -354,5 +355,3 @@ if __name__ == "__main__":
 			t = threading.Thread(target=session, args=(dialog[-1], backuplist))
 			threads.append(t)
 			t.start()
-
-		
