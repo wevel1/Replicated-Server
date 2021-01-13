@@ -259,13 +259,13 @@ def session( s , backuplist):
 				#Ahora toca subirlo a los BACKUP ANTES DE MANDAR EL OK.
 				print("Numero de copias a realizar: " + str(len(backuplist)))
 				sbu = backuplist[0]
-				i=0
+				#i=0
 				for i in backuplist:
 					print("Se va a realizar la copia en un servidor")
 					print ("CHECK user: " + str(username) + " filename: " + str(filename) + " filesize: " + str(filesize) + " filedata: " + str(filedata))
 					sendBU(i, username, filename, filesize, filedata)
 					print("Se ha realizado correctamente la copia en el BackupServer" + str(i))
-					i += 1
+					#i += 1
 				sendOK( s )
 				print("OK enviado al cliente")
 
@@ -325,7 +325,7 @@ if __name__ == "__main__":
 	socketlist.append(s2)
 
 	threads = []
-	dialog = [] 
+	dialog = []
 	primary = s
 	i = 0
 	while (True):
