@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import socket, sys, os, signal, threading
-import szasar
+import szasar, time
 
 SERVER = 'localhost'
 PORT = 6012 #backup server
@@ -12,6 +12,7 @@ SPACE_MARGIN = 50 * 1 << 20  # 50 MiB
 USERS = ("anonimous", "sar", "sza")
 PASSWORDS = ("", "sar", "sza")
 backuplist = []
+backuplistescuchar = []
 primary = None
 
 class State:
@@ -109,12 +110,36 @@ def session( s, i ):
 			sendOK(s)
 		elif message.startswith(szasar.Command.Sock):
 			sockets =  s.recv(4096)
-			backupprim = pickle.loads(sockets)
-			backuplist = []
-			backuplist.append(s)
+			sockets = sockets[4:-1]
+			backuplistescuchar = [None]*int((len(sockets)/2))
+			i = 0
+			j = 0
+			while(i < len(sockets)-1):
+				helbidea = sockets[i]
+				portua = sockets[i+1]
+				backuplistescuchar[j] = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
+				try:
+					backuplistescuchar[j].bind(('', portua))
+					print("bind bien en la sincronizacion de sockets")
+				except socket.error as msg:
+					print('Bind falla en la sincronizacion de sockets: ' + str(msg))
+					sys.exit()
+				backuplistescuchar[j].listen( 5 )
+				j = j+1
+				i=i+2
+			time.sleep(3)
+			j = 0
+			i = 0
+			backuplist = [None]*int((len(sockets)/2))
+			while(i < len(sockets)-1):
+				helbidea = sockets[i]
+				portua = sockets[i+1]
+				backuplist[j] = socket.socket( socket.AF_INET, socket.SOCK_STREAM ) #Create new socket for each server.
+				backuplist[j].connect( (helbidea, portua))
+				j = j+1
+				i = i+2
 
-			for process in backupprim:
-				backuplist.append(process)
+
 
 
 		elif message.startswith( szasar.Command.Password ):

@@ -154,13 +154,17 @@ def electNewPrimary():
 			if(message.startswith("OK")):
 				primary = process
 ###NO FUNCIONA, CANNOT SERIALIZE SOCKET OBJECT
-# def sendSocketList(slist):
-# 	for process in backuplist:
-# 		process.send(pickle.dumps(slist))
+def sendSocketList():
+	socks = ""
+	for process in backuplist:
+		helbidea, portua = process.getsockname()
+		socks = socks +(str(helbidea)+","+str(portua)+",")
+	for process in backuplist:
+ 		message = "{}{}\r\n".format( szasar.Command.Sock, socks )
+ 		process.sendall( message.encode( "ascii" ) )
 
 def session( s , backuplist):
 	state = State.Identification
-	#sendSocketList(backuplist)
 	while True:
 		#print("---SERVER: A la espera de un mensaje........................")
 		message = szasar.recvline( s ).decode( "ascii" )
@@ -365,6 +369,7 @@ if __name__ == "__main__":
 			print("datos de sc: ")
 			print(sc)
 			backuplist.append(sc)
+			sendSocketList()
 			if i == 0 :
 				t2 = threading.Thread(target=heartbeat, args=())
 				t2.start()
