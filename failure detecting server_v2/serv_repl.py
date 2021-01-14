@@ -248,16 +248,17 @@ if __name__ == "__main__":
 	print("Se van a crear {} backup servers".format(n))
 	#Connection with the main server
 	for i in range(int(n)):
+		PORT2 = PORT2 + i
 		try:
 			s = socket.socket( socket.AF_INET, socket.SOCK_STREAM ) #Create new socket for each server.
 			print("Intento {} de {} de conectarse a main server".format(i, n))
-			s.connect( (SERVER, PORT2 ))
+			s.connect( (SERVER, PORT2 + i ))
 			primary = s
 		except socket.error as msg:
 			print(msg)
 			sys.exit()
 
-		print( "Conexión aceptada del socket SERVER {} de {} = {}:{}.".format(i, n, SERVER, PORT2 ) )
+		print( "Conexión aceptada del socket SERVER {} de {} = {}:{}.".format(i, n, SERVER, PORT2) )
 
 		t = threading.Thread(target=session, args=(s, i,))
 		t.start()

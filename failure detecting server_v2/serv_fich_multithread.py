@@ -132,7 +132,7 @@ def heartbeat():
 	while True:
 		time.sleep(2)
 		for process in backuplist: #for every process in the list of sockets
-			helbidea, portua = s.getsockname()
+			helbidea, portua = process.getsockname()
 			print("Sending beat to process {}:{}".format(helbidea, portua))
 			response = beat(process) #sending message q to every process
 			if(response == False and process == primary):
@@ -307,46 +307,62 @@ def session( s , backuplist):
 
 
 if __name__ == "__main__":
-	s = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
-	s2 = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
-	s3 = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
+	n = sys.argv[1]
+	socketlist = [None]*(int(n)+1)
+	for i in range(int(n)+1):
+		print(i)
+		socketlist[i] = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
+		try:
+			socketlist[i].bind(('', PORT+i))
+			print("Bind with clients succesfull")
+		except socket.error as msg:
+			print('Bind failed with client. Error Code : ' + str(msg))
+			sys.exit()
+		socketlist[i].listen( 5 )
+		#socketlist.append(s)
+
+	#s = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
+	#s2 = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
+	#s3 = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
 
 	#Connection with the client.
-	try:
-		s.bind(('', PORT))
-		print("Bind with clients succesfull")
-	except socket.error as msg:
-		print('Bind failed with client. Error Code : ' + str(msg))
-		sys.exit()
-	s.listen( 5 )
+	#try:
+	#	s.bind(('', PORT))
+	#	print("Bind with clients succesfull")
+	#except socket.error as msg:
+	#	print('Bind failed with client. Error Code : ' + str(msg))
+	#	sys.exit()
+	#s.listen( 5 )
 
 	#Connection with replicated server1 and server2
-	try:
-		s2.bind(('', PORT2))
-		print("Bind with backup servers succesfull")
-	except socket.error as msg:
-		print('Bind failed replicated server 1 or 2. Error Code : ...')
-		sys.exit()
-	s2.listen( 5 )
+	#try:
+	#	s2.bind(('', PORT2))
+	#	print("Bind with backup servers succesfull")
+	#except socket.error as msg:
+	#	print('Bind failed replicated server 1 or 2. Error Code : ...')
+	#	sys.exit()
+	#s2.listen( 5 )
 
 	signal.signal(signal.SIGCHLD, signal.SIG_IGN)
-	socketlist = []
-	socketlist.append(s)
-	socketlist.append(s2)
+	#socketlist = []
+	#socketlist.append(s)
+	#socketlist.append(s2)
 
 	threads = []
 	dialog = []
 
-	primary = s
+	primary = None
 	i = 0
 	while (True):
 		readable,_,_ = select.select(socketlist, [], [])
 		ready_server = readable[0]
 		helbidea, portua = ready_server.getsockname()
 		print("Puerto: " + str(portua))
-		if portua == 6013:
+		if portua > 6012:
 			sc, address = ready_server.accept()
 			print( "Conexión aceptada del socket SERVER {0[0]}:{0[1]}.".format( address ) )
+			print("datos de sc: ")
+			print(sc)
 			backuplist.append(sc)
 			if i == 0 :
 				t2 = threading.Thread(target=heartbeat, args=())
