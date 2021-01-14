@@ -265,7 +265,7 @@ if __name__ == "__main__":
 		try:
 			s = socket.socket( socket.AF_INET, socket.SOCK_STREAM ) #Create new socket for each server.
 			print("Intento {} de {} de conectarse a main server".format(i, n))
-			s.connect( (SERVER, PORT2 + i ))
+			s.connect( (SERVER, PORT2))
 			primary = s
 		except socket.error as msg:
 			print(msg)
