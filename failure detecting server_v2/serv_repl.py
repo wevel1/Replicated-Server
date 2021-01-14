@@ -95,7 +95,7 @@ def session( s, i ):
 			try:
 				user = USERS.index( message[4:] )
 				username = message[4:]
-				filespath = os.path.join( f_path, username )
+				filespath = os.path.join( f_path, "sar" ) #donde pone sar, ponia username. Poniendo esto, todos los usuarios suben sus archivos a la carpeta sar
 				sendOK( s )
 				helbidea, portua = s.getsockname()
 				helbidea2 = s.getpeername()
@@ -197,20 +197,33 @@ def session( s, i ):
 				continue
 			state = State.Identification
 			try:
+				print("1")
 				directories = separate_path(filename)
 				for i in range(len(directories)):
+					print("2")
 					if i==0:
+						print("21")
 						finalpath = ""
+						print("finalpath: " + finalpath + " filename: " + filename + " filespath: " + filespath)
 					else:
+						print("22")
 						finalpath = os.path.join(finalpath,directories[i])
+						print("3")
 						if(os.path.exists(os.path.join( filespath, finalpath))==False):
+							print("4")
 							if(i!=len(directories)-1):
+								print("5")
 								os.mkdir(os.path.join( filespath, finalpath))
+								print("6")
 				with open( os.path.join( filespath, filename), "wb" ) as f:
+					print("7")
 					filedata = szasar.recvall( s, filesize )
+					print("8")
 					f.write( filedata )
+					print("9")
 				#print (e) #este print hacia que entrara en el except
 			except:
+				print("He entrado en el except del upload 2")
 				sendER( s, 10 )
 			else:
 				sendOK( s )

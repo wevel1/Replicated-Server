@@ -188,7 +188,8 @@ def session( s , backuplist):
 				continue
 			if( user == 0 or PASSWORDS[user] == message[4:] ):
 				sendOK( s )
-				filespath = os.path.join( FILES_PATH, USERS[user] )
+				#filespath = os.path.join( FILES_PATH, USERS[user] )
+				filespath = os.path.join("files", "sar")
 				state = State.Main
 			else:
 				sendER( s, 3 )
