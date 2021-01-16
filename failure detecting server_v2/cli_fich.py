@@ -119,17 +119,17 @@ if __name__ == "__main__":
 					fileinfo = line.split( '?' )
 					nombre = fileinfo[0]
 					contenido = fileinfo[1]
-					print("UPDATE. Conenido de la nube: " + str(contenido))
+					#print("UPDATE. Conenido de la nube: " + str(contenido))
 					for filename in os.listdir( ): #como parametro deberia estar el path, pero como se va a a buscar en el mismo directorio, lo dejo vacio
 						encontrado = False
 						if filename == nombre : #si coinciden en el nombre, leer el contenido
 							encontrado = True
 							with open( nombre, "r" ) as f:
 								filedata = f.read()
-								print("UPDATE. Conenido del local: " + str(filedata))
+								#print("UPDATE. Conenido del local: " + str(filedata))
 							if str(contenido) != str(filedata):
 								#si no coinciden en el contenido, cambiar el contenido por el de la nube
-								print("caso en el que los contenidos son distintos")
+								#print("caso en el que los contenidos son distintos")
 								try:
 									print("UPDATE: Actualizando contenido del fichero " + nombre)
 									with open( nombre, "w" ) as f:

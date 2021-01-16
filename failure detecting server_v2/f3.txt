@@ -1,1 +1,1 @@
-b'Sputnik VIII\n'
+Sputnik VIII

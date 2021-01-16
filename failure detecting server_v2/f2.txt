@@ -1,1 +1,1 @@
-b'Sputnik VII\n'
+Sputnik VII
