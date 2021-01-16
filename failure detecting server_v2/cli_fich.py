@@ -3,6 +3,7 @@
 import socket, sys, os
 import szasar
 
+i = 0
 SERVER = 'localhost'
 PORT = 6012
 ER_MSG = (
@@ -92,6 +93,72 @@ if __name__ == "__main__":
 
 
 	while True:
+
+		#####################################################################################################################
+		# El cliente mira que todos los ficheros que hay en el sever sean iguales que los que tiene el en su copia local.	#
+		# Si hay alguna diferencia, el sistema actualiza el fichero local:													#
+		# -El cliente puede tener en su copia local un fichero que no haya subido. Ese fichero no hay que compararlo.		#
+		# -Si no hay un fichero en la copia local que si esta en el server, descargamos ese fichero.						#
+		# -Si el contenido del fichero del server es distinto al contenido del fichero de la copia local:					#
+		# 	-Eliminar el fichero local																						#
+		# 	-Descargar el fichero del server																				#
+		#####################################################################################################################
+		print("Actualizando el sistema")
+		message = "{}\r\n".format( szasar.Command.Update )
+		s.sendall( message.encode( "ascii" ) )
+		message = szasar.recvline( s ).decode( "ascii" )
+		if iserror( message ):
+			print("UPDATE: Error a la hora de updatear el sistema. MSG: " + message)
+			#continue
+			break
+		else:
+			while True:
+				line = szasar.recvline( s ).decode("ascii")
+				#print("UPDATE: Linea recibida: " + line)
+				if line:
+					fileinfo = line.split( '?' )
+					nombre = fileinfo[0]
+					contenido = fileinfo[1]
+					print("UPDATE. Conenido de la nube: " + str(contenido))
+					for filename in os.listdir( ): #como parametro deberia estar el path, pero como se va a a buscar en el mismo directorio, lo dejo vacio
+						encontrado = False
+						if filename == nombre : #si coinciden en el nombre, leer el contenido
+							encontrado = True
+							with open( nombre, "r" ) as f:
+								filedata = f.read()
+								print("UPDATE. Conenido del local: " + str(filedata))
+							if str(contenido) != str(filedata):
+								#si no coinciden en el contenido, cambiar el contenido por el de la nube
+								print("caso en el que los contenidos son distintos")
+								try:
+									print("UPDATE: Actualizando contenido del fichero " + nombre)
+									with open( nombre, "w" ) as f:
+										f.write( contenido[2:-3] )
+								except:
+									print( "UPDATE: No se ha podido guardar el fichero en disco." )
+								else:
+									print( "UPDATE: El contenido del fichero {} se ha actualizado correctamente.".format( filename ) )
+							break
+
+					if encontrado == False:
+						#caso en el que no se haya encontrado en la copia local el archivo que hay en la nube, el sistema lo crea
+						try:
+							print("UPDATE: creando el fichero: " + nombre + " En la copia local.")
+							with open( nombre, "w" ) as f:
+								f.write( contenido )
+						except:
+							print( "UPDATE: No se ha podido crear el fichero en copia local." )
+						else:
+							print( "UPDATE: El fichero {} se ha creado localmente correctamente.".format( filename ) )
+
+
+				else: #si no hay mas lineas que recibir
+					break
+
+
+		print("SISTEMA ACTUALIZADO! Recarge las replicas del cliente para que la actualizacion surta efecto (dale a mostrar lista)")
+		#Update terminado.
+
 		option = Menu.menu()
 
 		if option == Menu.List:

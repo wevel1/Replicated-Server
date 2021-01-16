@@ -96,7 +96,8 @@ def session( s, i ):
 			try:
 				user = USERS.index( message[4:] )
 				username = message[4:]
-				filespath = os.path.join( f_path, "sar" ) #donde pone sar, ponia username. Poniendo esto, todos los usuarios suben sus archivos a la carpeta sar
+				#filespath = os.path.join( f_path, "sar" ) Poniendo esto, todos los usuarios suben sus archivos a la carpeta sar
+				filespath = os.path.join( f_path, username )
 				sendOK( s )
 				helbidea, portua = s.getsockname()
 				helbidea2 = s.getpeername()
@@ -275,6 +276,24 @@ def session( s, i ):
 		elif message.startswith(szasar.Command.Beat):
 			print("Session: Msg identificado como beat")
 			sendBEAT( s )
+
+		elif message.startswith(szasar.Command.Update ):
+			print("Mensaje identificado como update")
+			if state != State.Main:
+				sendER( s )
+				continue
+			try:
+				message = "OK\r\n"
+				for filename in os.listdir( filespath ):
+					with open( filename, "rb" ) as f:
+						filedata = f.read()
+					message += "{}?{}?\r\n".format( filename, filedata )
+				message += "\r\n"
+				#siempre se envia el mensaje asi: nombre?contenido
+			except:
+				sendER( s, 4 )
+			else:
+				s.sendall( message.encode( "ascii" ) )
 
 		else:
 			sendER( s )

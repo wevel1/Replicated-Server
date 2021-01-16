@@ -192,8 +192,8 @@ def session( s , backuplist):
 				continue
 			if( user == 0 or PASSWORDS[user] == message[4:] ):
 				sendOK( s )
-				#filespath = os.path.join( FILES_PATH, USERS[user] )
-				filespath = os.path.join("files", "sar")
+				filespath = os.path.join( FILES_PATH, USERS[user] )
+				#filespath = os.path.join("files", "sar")
 				state = State.Main
 			else:
 				sendER( s, 3 )
@@ -306,6 +306,31 @@ def session( s , backuplist):
 		elif message.startswith(szasar.Command.Beat):
 			print("Session: Msg identificado como beat")
 			#sendBEAT( s )
+
+		elif message.startswith(szasar.Command.Update ):
+			print("Mensaje identificado como update")
+			filename = ''
+			filedata = ''
+			if state != State.Main:
+				sendER( s )
+				continue
+			try:
+				message = "OK\r\n"
+				for filename in os.listdir( filespath ):
+					#print("Accediendo a Filename: " + filename + " Filespath: " + filespath)
+					readingpath = filespath + "/" + filename
+					with open( readingpath, "r" ) as f:
+						filedata = f.read()
+						#print("filedata: " + str(filedata))
+					message += "{}?{}?\r\n".format( filename, filedata )
+				message += "\r\n"
+				#print("UPDATE: Mensaje enviado por el server: " + message)
+				#siempre se envia el mensaje asi: nombre?contenido
+			except:
+				sendER( s, 4 )
+			else:
+				s.sendall( message.encode( "ascii" ) )
+
 		else:
 			sendER( s )
 
@@ -369,7 +394,7 @@ if __name__ == "__main__":
 			print("datos de sc: ")
 			print(sc)
 			backuplist.append(sc)
-			sendSocketList()
+			#sendSocketList()
 			if i == 0 :
 				t2 = threading.Thread(target=heartbeat, args=())
 				t2.start()
