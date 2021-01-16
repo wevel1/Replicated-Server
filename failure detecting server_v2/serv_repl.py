@@ -109,6 +109,53 @@ def session( s, i ):
 				#sendER( s, 2 )
 		elif message.startswith(szasar.Command.Elon):
 			sendOK(s)
+		elif message.startswith(szasar.Command.Update):
+			if state != State.Main:
+				sendER( s )
+				continue
+			if user == 0:
+				sendER( s, 7 )
+				continue
+			filename, filesize = message[4:].split('?')
+			filesize = int(filesize)
+			if filesize > MAX_FILE_SIZE:
+				sendER( s, 8 )
+				continue
+			svfs = os.statvfs( filespath )
+			if filesize + SPACE_MARGIN > svfs.f_bsize * svfs.f_bavail:
+				sendER( s, 9 )
+				continue
+			sendOK( s )
+			state = State.Updating
+		elif message.startswith(szasar.Command.Update2):
+			print("He entrado en Session Update2")
+			if state != State.Updating:
+				print("He entrado en el error de state de update2")
+				sendER( s )
+				continue
+			state = State.Main
+			#falta hacer la comprobacion de diff con los cambios a hacer al fichero
+			try:
+				with open( os.path.join( filespath, 'temp1'), "wb" ) as f:
+					filedata = szasar.recvall( s, filesize )
+					f.write( filedata )
+				with open(filename,"a+") as file1, open('temp1') as file2:
+				    words1 = set(file1)
+				    words2 = set(file2)
+				    new_words = words2 - words1
+				    common = words1.intersection(words2)
+				    if new_words:
+				        file1.write('\n')
+				        for w in new_words:
+				            file1.write(w)
+			except:
+				sendER( s, 10 )
+			else:
+				#Upload to the secondary servers before sending ACK to the client
+				for i in backuplist:
+					modifyBU(i, username, filename, filesize, filedata)
+				print("Update2. Voy a enviar el OK")
+				sendOK( s )
 		elif message.startswith(szasar.Command.Sock):
 			sockets =  s.recv(4096)
 			sockets = sockets[4:-1]

@@ -19,7 +19,7 @@ ER_MSG = (
 	"Error al borrar el fichero." )
 
 class Menu:
-	List, Download, Upload, Delete, Exit = range( 1, 6 )
+	List, Download, Upload, Delete, Exit, Modify = range( 1, 6 )
 	Options = ( "Lista de ficheros", "Bajar fichero", "Subir fichero", "Borrar fichero", "Salir" )
 	
 def operation():
@@ -153,4 +153,27 @@ if __name__ == "__main__":
 			message = szasar.recvline( s ).decode( "ascii" )
 			#if not iserror( message ):
 				#print( "El fichero {} se ha borrado correctamente.".format( filename ) )
+		elif int(option) == Menu.Modify:
+			try:
+				prueba = os.path.join(path,filename)
+				filesize = os.path.getsize(prueba)
+				with open(prueba, "rb" ) as f:
+					filedata = f.read()
+				print("lo lee")
+			except:
+				print( "No se ha podido acceder al fichero {}.".format( prueba) )
+				continue
+
+			message = "{}{}?{}\r\n".format( szasar.Command.Update, prueba, filesize )
+			s.sendall( message.encode( "ascii" ) )
+			message = szasar.recvline( s ).decode( "ascii" )
+			if iserror( message ):
+				continue
+
+			message = "{}\r\n".format( szasar.Command.Update2 )
+			s.sendall( message.encode( "ascii" ) )
+			s.sendall( filedata )
+			message = szasar.recvline( s ).decode( "ascii" )
+			if not iserror( message ):
+				print( "El fichero {} se ha enviado correctamente.".format( prueba ) )
 	s.close()

@@ -39,7 +39,7 @@ def iserror( message ):
 		return False
 
 class State:
-	Identification, Authentication, Main, Downloading, Uploading = range(5)
+	Identification, Authentication, Main, Downloading, Uploading, Updating = range(6)
 
 def sendOK( s, params="" ):
 	s.sendall( ("OK{}\r\n".format( params )).encode( "ascii" ) )
@@ -83,6 +83,39 @@ def sendBU( sBU, user, filename, filesize, filedata ):
 		print( "The file {} has been uploaded correctly to the BackupServer".format( filename) )
 	else:
 		print("Has not been possible to make UPLOAD2 on the BackupServer")
+def modifyBU( sBU, user, filename, filesize, filedata ):
+	#Identification phase
+	message = "{}{}\r\n".format( szasar.Command.User, user )
+	sBU.sendall( message.encode( "ascii" ) )
+	message = szasar.recvline( sBU ).decode( "ascii" )
+	if not iserror( message ):
+		print("Identification has been done correctly with the BackupServer")
+	else:
+		print("Has not been possible to identify on the backup server")
+		return
+
+	#UPDATE1
+	message = "{}{}?{}\r\n".format( szasar.Command.Update, filename, filesize )
+	sBU.sendall( message.encode( "ascii" ) )
+	#print("Update1 enviado. MSG: " + message)
+	message = szasar.recvline( sBU ).decode( "ascii" )
+	if not iserror( message ):
+		print("UPDATE1 has been done correctly with the BackupServer ")
+	else:
+		print("Has not been possible to make UPDATE1 on the BackupServer")
+		return
+
+	#UPLOAD2
+	print(" ======= UPLOAD2 ======= ")
+	message = "{}\r\n".format( szasar.Command.Update2 )
+	sBU.sendall( message.encode( "ascii" ) )
+	sBU.sendall( filedata )
+	#print("Upload2 enviado. MSG: " + message)
+	message = szasar.recvline( sBU ).decode( "ascii" )
+	if not iserror( message ):
+		print( "The file {} has been updated correctly in the BackupServer".format( filename) )
+	else:
+		print("Has not been possible to make UPDATE2 on the BackupServer")
 
 def deleteBU( sBU, user, filename ):
 
@@ -186,6 +219,53 @@ def session( s , backuplist):
 				state = State.Authentication
 		elif message.startswith(szasar.Command.Elon):
 			sendOK(s)
+		elif message.startswith(szasar.Command.Update):
+			if state != State.Main:
+				sendER( s )
+				continue
+			if user == 0:
+				sendER( s, 7 )
+				continue
+			filename, filesize = message[4:].split('?')
+			filesize = int(filesize)
+			if filesize > MAX_FILE_SIZE:
+				sendER( s, 8 )
+				continue
+			svfs = os.statvfs( filespath )
+			if filesize + SPACE_MARGIN > svfs.f_bsize * svfs.f_bavail:
+				sendER( s, 9 )
+				continue
+			sendOK( s )
+			state = State.Updating
+		elif message.startswith(szasar.Command.Update2):
+			print("He entrado en Session Update2")
+			if state != State.Updating:
+				print("He entrado en el error de state de update2")
+				sendER( s )
+				continue
+			state = State.Main
+			#falta hacer la comprobacion de diff con los cambios a hacer al fichero
+			try:
+				with open( os.path.join( filespath, 'temp1'), "wb" ) as f:
+					filedata = szasar.recvall( s, filesize )
+					f.write( filedata )
+				with open(filename,"a+") as file1, open('temp1') as file2:
+				    words1 = set(file1)
+				    words2 = set(file2)
+				    new_words = words2 - words1
+				    common = words1.intersection(words2)
+				    if new_words:
+				        file1.write('\n')
+				        for w in new_words:
+				            file1.write(w)
+			except:
+				sendER( s, 10 )
+			else:
+				#Upload to the secondary servers before sending ACK to the client
+				for i in backuplist:
+					modifyBU(i, username, filename, filesize, filedata)
+				print("Update2. Voy a enviar el OK")
+				sendOK( s )
 		elif message.startswith( szasar.Command.Password ):
 			if state != State.Authentication:
 				sendER( s )
