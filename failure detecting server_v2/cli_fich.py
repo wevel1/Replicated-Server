@@ -3,7 +3,8 @@
 import socket, sys, os
 import szasar
 
-i = 0
+updateDelete = False
+updateDeleteFile = ""
 SERVER = 'localhost'
 PORT = 6012
 ER_MSG = (
@@ -93,7 +94,7 @@ if __name__ == "__main__":
 
 
 	while True:
-
+		print(updateDelete)
 		#####################################################################################################################
 		# El cliente mira que todos los ficheros que hay en el sever sean iguales que los que tiene el en su copia local.	#
 		# Si hay alguna diferencia, el sistema actualiza el fichero local:													#
@@ -104,6 +105,15 @@ if __name__ == "__main__":
 		# 	-Descargar el fichero del server																				#
 		#####################################################################################################################
 		print("Actualizando el sistema")
+		if updateDelete == True:
+			updateDelete = False
+			try:
+				os.remove(updateDeleteFile)
+				print("File: " + updateDeleteFile + " deleted.")
+				updateDeleteFile = ""
+			except:
+				print("Cannot delete file")
+				sendER( s, 11 )
 		message = "{}\r\n".format( szasar.Command.Update )
 		s.sendall( message.encode( "ascii" ) )
 		message = szasar.recvline( s ).decode( "ascii" )
@@ -237,6 +247,8 @@ if __name__ == "__main__":
 			message = szasar.recvline( s ).decode( "ascii" )
 			if not iserror( message ):
 				print( "El fichero {} se ha borrado correctamente.".format( filename ) )
+				updateDelete = True
+				updateDeleteFile = filename
 
 		elif option == Menu.Exit:
 			message = "{}\r\n".format( szasar.Command.Exit )
