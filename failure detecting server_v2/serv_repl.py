@@ -16,7 +16,7 @@ backuplistescuchar = []
 primary = None
 
 class State:
-	Identification, Authentication, Main, Downloading, Modifying = range(5)
+	Identification, Authentication, Main, Downloading, Modifying, Uploading = range(6)
 
 def sendOK( s, params="" ):
 	s.sendall( ("OK{}\r\n".format( params )).encode( "ascii" ) )
@@ -271,30 +271,30 @@ def session( s, i ):
 				continue
 			state = State.Identification
 			try:
-				print("1")
+				#print("1")
 				directories = separate_path(filename)
 				for i in range(len(directories)):
-					print("2")
+					#print("2")
 					if i==0:
-						print("21")
+						#print("21")
 						finalpath = ""
-						print("finalpath: " + finalpath + " filename: " + filename + " filespath: " + filespath)
+						#print("finalpath: " + finalpath + " filename: " + filename + " filespath: " + filespath)
 					else:
-						print("22")
+						#print("22")
 						finalpath = os.path.join(finalpath,directories[i])
-						print("3")
+						#print("3")
 						if(os.path.exists(os.path.join( filespath, finalpath))==False):
-							print("4")
+							#print("4")
 							if(i!=len(directories)-1):
-								print("5")
+								#print("5")
 								os.mkdir(os.path.join( filespath, finalpath))
-								print("6")
+								#print("6")
 				with open( os.path.join( filespath, filename), "wb" ) as f:
-					print("7")
+					#print("7")
 					filedata = szasar.recvall( s, filesize )
-					print("8")
+					#print("8")
 					f.write( filedata )
-					print("9")
+					#print("9")
 				#print (e) #este print hacia que entrara en el except
 			except:
 				print("He entrado en el except del upload 2")

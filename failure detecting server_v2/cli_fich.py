@@ -94,7 +94,7 @@ if __name__ == "__main__":
 
 
 	while True:
-		print(updateDelete)
+		#print(updateDelete)
 		#####################################################################################################################
 		# El cliente mira que todos los ficheros que hay en el sever sean iguales que los que tiene el en su copia local.	#
 		# Si hay alguna diferencia, el sistema actualiza el fichero local:													#
@@ -143,7 +143,7 @@ if __name__ == "__main__":
 								try:
 									print("UPDATE: Actualizando contenido del fichero " + nombre)
 									with open( nombre, "w" ) as f:
-										f.write( contenido[2:-3] )
+										f.write( contenido )
 								except:
 									print( "UPDATE: No se ha podido guardar el fichero en disco." )
 								else:
