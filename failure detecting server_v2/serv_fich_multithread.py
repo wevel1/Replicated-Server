@@ -39,7 +39,7 @@ def iserror( message ):
 		return False
 
 class State:
-	Identification, Authentication, Main, Downloading, Uploading, Updating = range(6)
+	Identification, Authentication, Main, Downloading, Uploading, Modifying = range(6)
 
 def sendOK( s, params="" ):
 	s.sendall( ("OK{}\r\n".format( params )).encode( "ascii" ) )
@@ -95,7 +95,7 @@ def modifyBU( sBU, user, filename, filesize, filedata ):
 		return
 
 	#UPDATE1
-	message = "{}{}?{}\r\n".format( szasar.Command.Update, filename, filesize )
+	message = "{}{}?{}\r\n".format( szasar.Command.Modify, filename, filesize )
 	sBU.sendall( message.encode( "ascii" ) )
 	#print("Update1 enviado. MSG: " + message)
 	message = szasar.recvline( sBU ).decode( "ascii" )
@@ -107,7 +107,7 @@ def modifyBU( sBU, user, filename, filesize, filedata ):
 
 	#UPLOAD2
 	print(" ======= UPLOAD2 ======= ")
-	message = "{}\r\n".format( szasar.Command.Update2 )
+	message = "{}\r\n".format( szasar.Command.Modify2 )
 	sBU.sendall( message.encode( "ascii" ) )
 	sBU.sendall( filedata )
 	#print("Upload2 enviado. MSG: " + message)
@@ -186,7 +186,7 @@ def electNewPrimary():
 			message = szasar.recvline( s ).decode( "ascii" )
 			if(message.startswith("OK")):
 				primary = process
-###NO FUNCIONA, CANNOT SERIALIZE SOCKET OBJECT
+
 def sendSocketList():
 	socks = ""
 	for process in backuplist:
@@ -219,7 +219,7 @@ def session( s , backuplist):
 				state = State.Authentication
 		elif message.startswith(szasar.Command.Elon):
 			sendOK(s)
-		elif message.startswith(szasar.Command.Update):
+		elif message.startswith(szasar.Command.Modify):
 			if state != State.Main:
 				sendER( s )
 				continue
@@ -236,15 +236,14 @@ def session( s , backuplist):
 				sendER( s, 9 )
 				continue
 			sendOK( s )
-			state = State.Updating
-		elif message.startswith(szasar.Command.Update2):
+			state = State.Modifying
+		elif message.startswith(szasar.Command.Modify2):
 			print("He entrado en Session Update2")
-			if state != State.Updating:
+			if state != State.Modifying:
 				print("He entrado en el error de state de update2")
 				sendER( s )
 				continue
 			state = State.Main
-			#falta hacer la comprobacion de diff con los cambios a hacer al fichero
 			try:
 				with open( os.path.join( filespath, 'temp1'), "wb" ) as f:
 					filedata = szasar.recvall( s, filesize )
@@ -258,6 +257,7 @@ def session( s , backuplist):
 				        file1.write('\n')
 				        for w in new_words:
 				            file1.write(w)
+				os.remove('temp1')
 			except:
 				sendER( s, 10 )
 			else:

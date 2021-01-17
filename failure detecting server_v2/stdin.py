@@ -164,13 +164,13 @@ if __name__ == "__main__":
 				print( "No se ha podido acceder al fichero {}.".format( prueba) )
 				continue
 
-			message = "{}{}?{}\r\n".format( szasar.Command.Update, prueba, filesize )
+			message = "{}{}?{}\r\n".format( szasar.Command.Modify, prueba, filesize )
 			s.sendall( message.encode( "ascii" ) )
 			message = szasar.recvline( s ).decode( "ascii" )
 			if iserror( message ):
 				continue
 
-			message = "{}\r\n".format( szasar.Command.Update2 )
+			message = "{}\r\n".format( szasar.Command.Modify2 )
 			s.sendall( message.encode( "ascii" ) )
 			s.sendall( filedata )
 			message = szasar.recvline( s ).decode( "ascii" )

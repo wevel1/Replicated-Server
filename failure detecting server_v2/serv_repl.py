@@ -16,7 +16,7 @@ backuplistescuchar = []
 primary = None
 
 class State:
-	Identification, Authentication, Main, Downloading, Uploading = range(5)
+	Identification, Authentication, Main, Downloading, Modifying = range(5)
 
 def sendOK( s, params="" ):
 	s.sendall( ("OK{}\r\n".format( params )).encode( "ascii" ) )
@@ -109,7 +109,7 @@ def session( s, i ):
 				#sendER( s, 2 )
 		elif message.startswith(szasar.Command.Elon):
 			sendOK(s)
-		elif message.startswith(szasar.Command.Update):
+		elif message.startswith(szasar.Command.Modify):
 			if state != State.Main:
 				sendER( s )
 				continue
@@ -126,10 +126,10 @@ def session( s, i ):
 				sendER( s, 9 )
 				continue
 			sendOK( s )
-			state = State.Updating
-		elif message.startswith(szasar.Command.Update2):
+			state = State.Modifying
+		elif message.startswith(szasar.Command.Modify2):
 			print("He entrado en Session Update2")
-			if state != State.Updating:
+			if state != State.Modifying:
 				print("He entrado en el error de state de update2")
 				sendER( s )
 				continue
@@ -148,6 +148,7 @@ def session( s, i ):
 				        file1.write('\n')
 				        for w in new_words:
 				            file1.write(w)
+				os.remove('temp1')
 			except:
 				sendER( s, 10 )
 			else:
